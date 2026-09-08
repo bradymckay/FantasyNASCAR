@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NASCAR Fantasy League Hub</title>
+  <style>
+    :root {
+      --primary: #d90429;
+      --dark: #2b2d42;
+      --light: #f8f9fa;
+      --gray: #8d99ae;
+      --border: #ced4da;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f4f6f8;
+      color: var(--dark);
+      margin: 0;
+      padding: 0;
+      line-height: 1.5;
+    }
+    header {
+      background-color: var(--dark);
+      color: #fff;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 4px solid var(--primary);
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    .container {
+      max-width: 900px;
+      margin: 2rem auto;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .hidden {
+      display: none !important;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    input, select, button {
+      padding: 0.75rem;
+      font-size: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background-color: #b50322;
+    }
+    .tier-section {
+      margin-bottom: 1.5rem;
+      padding: 1rem;
+      background: #fafafa;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.75rem;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+    th {
+      background-color: #e9ecef;
+    }
+    .nav-tabs {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    .nav-tab {
+      background: none;
+      border: none;
+      color: var(--gray);
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      padding: 0.5rem 1rem;
+    }
+    .nav-tab.active {
+      color: var(--primary);
+      border-bottom: 3px solid var(--primary);
+    }
+    .error-msg {
+      color: var(--primary);
+      font-weight: 500;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>NASCAR Fantasy League</h1>
+    <div id="userHeaderInfo" class="hidden">
+      <span id="headerUserName" style="margin-right: 1rem;"></span>
+      <button onclick="logout()" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Log Out</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- AUTHENTICATION VIEW -->
+    <div id="authView">
+      <div class="nav-tabs">
+        <button class="nav-tab active" onclick="switchAuthTab('login')">Log In</button>
+        <button class="nav-tab" onclick="switchAuthTab('register')">Sign Up</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="loginForm" onsubmit="handleLogin(event)">
+        <h3>Welcome Back</h3>
+        <input type="email" id="loginEmail" placeholder="Email Address" required>
+        <input type="password" id="loginPassword" placeholder="Password / PIN" required>
+        <button type="submit">Log In</button>
+        <div id="loginError" class="error-msg"></div>
+      </form>
+
+      <!-- Register Form -->
+      <form id="registerForm" class="hidden" onsubmit="handleRegister(event)">
+        <h3>Create an Account</h3>
+        <input type="text" id="regName" placeholder="Full Name" required>
+        <input type="email" id="regEmail" placeholder="Email Address" required>
+        <input type="password" id="regPassword" placeholder="Create Password / PIN" required>
+        <button type="submit">Register</button>
+        <div id="regError" class="error-msg"></div>
+      </form>
+    </div>
+
+    <!-- MAIN APP DASHBOARD VIEW -->
+    <div id="dashboardView" class="hidden">
+      <div class="nav-tabs">
+        <button class="nav-tab active" id="tabSubmitBtn" onclick="switchDashboardTab('submit')">Submit Roster</button>
+        <button class="nav-tab" id="tabMyTeamsBtn" onclick="switchDashboardTab('myTeams')">My Submissions</button>
+        <button class="nav-tab hidden" id="tabAdminBtn" onclick="switchDashboardTab('admin')">Admin Panel</button>
+      </div>
+
+      <!-- Submit Roster Section -->
+      <div id="sectionSubmit">
+        <h3>Submit Your Roster</h3>
+        <form onsubmit="handleRosterSubmit(event)">
+          <input type="text" id="teamIdentifier" placeholder="Stable / Team Name (e.g., Fast Trackers)" required>
+          <div id="tiersContainer">Loading driver tiers...</div>
+          <button type="submit" style="margin-top: 1rem;">Save / Update Roster</button>
+          <div id="submitStatus" style="margin-top: 0.5rem; font-weight: bold;"></div>
+        </form>
+      </div>
+
+      <!-- My Submissions Section -->
+      <div id="sectionMyTeams" class="hidden">
+        <h3>Your Saved Rosters</h3>
+        <div id="myTeamsList">Loading your submissions...</div>
+      </div>
+
+      <!-- Admin Panel Section -->
+      <div id="sectionAdmin" class="hidden">
+        <h3>Admin Dashboard - All Participants</h3>
+        <p>Logged in Admin: <span id="adminEmailDisplay" style="font-weight: bold;"></span></p>
+        <div id="adminSubRosters">Loading participant rosters...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbzMG87Z2WKta4ytG2O6jVl7R6diIvoRoyuwmu6AfnUdXo9W2QhzZ07Hs5vxaexvGhWj/exec";
+    let currentUser = null;
+    let driverDataCache = null;
+
+    async function callAPI(action, payload = {}) {
+      try {
+        payload.action = action;
+        const response = await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        return await response.json();
+      } catch (err) {
+        console.error("API Error:", err);
+        return { success: false, error: err.toString() };
+      }
+    }
+
+    function switchAuthTab(tab) {
+      document.querySelectorAll('#authView .nav-tab').forEach(el => el.classList.remove('active'));
+      if (tab === 'login') {
+        event.target.classList.add('active');
+        document.getElementById('loginForm').classList.remove('hidden');
+        document.getElementById('registerForm').classList.add('hidden');
+      } else {
+        event.target.classList.add('active');
+        document.getElementById('registerForm').classList.remove('hidden');
+        document.getElementById('loginForm').classList.add('hidden');
+      }
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      
+      const res = await callAPI("login", { email, password });
+      if (res.success) {
+        currentUser = { email: email, name: res.name, isAdmin: res.isAdmin };
+        initDashboard();
+      } else {
+        document.getElementById('loginError').textContent = res.error;
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const name = document.getElementById('regName').value;
+      const email = document.getElementById('regEmail').value;
+      const password = document.getElementById('regPassword').value;
+      
+      const res = await callAPI("register", { name, email, password });
+      if (res.success) {
+        alert("Account created successfully! Please log in.");
+        switchAuthTab('login');
+      } else {
+        document.getElementById('regError').textContent = res.error;
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      document.getElementById('dashboardView').classList.add('hidden');
+      document.getElementById('authView').classList.remove('hidden');
+      document.getElementById('userHeaderInfo').classList.add('hidden');
+    }
+
+    async function initDashboard() {
+      document.getElementById('authView').classList.add('hidden');
+      document.getElementById('dashboardView').classList.remove('hidden');
+      document.getElementById('userHeaderInfo').classList.remove('hidden');
+      document.getElementById('headerUserName').textContent = currentUser.name;
+
+      if (currentUser.isAdmin) {
+        document.getElementById('tabAdminBtn').classList.remove('hidden');
+      }
+
+      await loadDriversForForm();
+    }
+
+    function switchDashboardTab(tab) {
+      document.querySelectorAll('#dashboardView .nav-tab').forEach(el => el.classList.remove('active'));
+      document.getElementById('sectionSubmit').classList.add('hidden');
+      document.getElementById('sectionMyTeams').classList.add('hidden');
+      document.getElementById('sectionAdmin').classList.add('hidden');
+
+      if (tab === 'submit') {
+        document.getElementById('tabSubmitBtn').classList.add('active');
+        document.getElementById('sectionSubmit').classList.remove('hidden');
+      } else if (tab === 'myTeams') {
+        document.getElementById('tabMyTeamsBtn').classList.add('active');
+        document.getElementById('sectionMyTeams').classList.remove('hidden');
+        loadMyTeams();
+      } else if (tab === 'admin') {
+        document.getElementById('tabAdminBtn').classList.add('active');
+        document.getElementById('sectionAdmin').classList.remove('hidden');
+        loadAdminDashboard();
+      }
+    }
+
+    async function loadDriversForForm() {
+      const res = await callAPI("getDrivers");
+      if (res.success) {
+        driverDataCache = res.data;
+        renderDriverForm(res.data);
+      } else {
+        document.getElementById('tiersContainer').innerHTML = `<p class="error-msg">Error loading drivers: ${res.error}</p>`;
+      }
+    }
+
+    function renderDriverForm(data) {
+      let html = '';
+      ['tier1', 'tier2', 'tier3', 'tier4'].forEach((tierKey, idx) => {
+        html += `<div class="tier-section"><h4>Tier ${idx + 1} Drivers</h4>`;
+        const drivers = data.tiers[tierKey] || [];
+        for (let i = 1; i <= 3; i++) {
+          html += `<select name="${tierKey}_d${i}" style="margin: 0.25rem 0; width: 100%;">
+            <option value="">-- Select Driver ${i} --</option>
+            ${drivers.map(d => `<option value="${d.name}">${d.name} (${d.team || 'Indy'})</option>`).join('')}
+          </select>`;
+        }
+        html += `</div>`;
+      });
+      document.getElementById('tiersContainer').innerHTML = html;
+    }
+
+    async function handleRosterSubmit(e) {
+      e.preventDefault();
+      const teamIdentifier = document.getElementById('teamIdentifier').value;
+      
+      // Gather selects
+      const selects = document.querySelectorAll('#tiersContainer select');
+      const drivers = Array.from(selects).map(s => s.value);
+
+      const payload = {
+        email: currentUser.email,
+        name: currentUser.name,
+        teamIdentifier: teamIdentifier,
+        d1: drivers[0] || "", d2: drivers[1] || "", d3: drivers[2] || "",
+        d4: drivers[3] || "", d5: drivers[4] || "", d6: drivers[5] || "",
+        d7: drivers[6] || "", d8: drivers[7] || "", d9: drivers[8] || "",
+        d10: drivers[9] || "",
+        t1: "", t2: ""
+      };
+
+      const res = await callAPI("submitSelections", payload);
+      const statusEl = document.getElementById('submitStatus');
+      if (res.success) {
+        statusEl.style.color = "green";
+        statusEl.textContent = "Roster successfully saved!";
+      } else {
+        statusEl.style.color = "red";
+        statusEl.textContent = "Error saving roster: " + res.error;
+      }
+    }
+
+    async function loadMyTeams() {
+      const container = document.getElementById('myTeamsList');
+      const res = await callAPI("lookupTeam", { email: currentUser.email });
+      if (res.found) {
+        let html = '';
+        res.teams.forEach(t => {
+          html += `<div style="border:1px solid #ddd; padding:1rem; margin-bottom:1rem; border-radius:4px;">
+            <h4>Stable: ${t.teamIdentifier}</h4>
+            <p style="font-size:0.9rem;"><b>Drivers:</b> ${t.drivers.filter(Boolean).join(', ')}</p>
+          </div>`;
+        });
+        container.innerHTML = html;
+      } else {
+        container.innerHTML = '<p>No team submissions found yet.</p>';
+      }
+    }
+
+    async function loadAdminDashboard() {
+      document.getElementById('adminEmailDisplay').textContent = currentUser.email;
+      const container = document.getElementById('adminSubRosters');
+      const res = await callAPI("adminGetAllTeams", { email: currentUser.email });
+      
+      if (res.success) {
+        if (!res.teams || res.teams.length === 0) {
+          container.innerHTML = '<p>No participant submissions found.</p>';
+          return;
+        }
+        let html = `<table><tr><th>Email</th><th>Name</th><th>Stable</th><th>Drivers</th></tr>`;
+        res.teams.forEach(t => {
+          html += `<tr>
+            <td>${t.email}</td>
+            <td><b>${t.name}</b></td>
+            <td><b>${t.teamIdentifier}</b></td>
+            <td style="font-size: 11px;">${t.drivers.join(', ')}</td>
+          </tr>`;
+        });
+        html += '</table>';
+        container.innerHTML = html;
+      } else {
+        container.innerHTML = `<p class="error-msg">${res.error}</p>`;
+      }
+    }
+  </script>
+</body>
+</html>
