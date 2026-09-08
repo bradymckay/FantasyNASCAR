@@ -73,6 +73,10 @@
       border: 1px solid #e9ecef;
       border-radius: 6px;
     }
+    .tier-section h4 {
+      margin-top: 0;
+      color: var(--primary);
+    }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -117,9 +121,9 @@
 <body>
 
   <header>
-    <h1>NASCAR Fantasy League</h1>
+    <h1>NASCAR Fantasy League Hub</h1>
     <div id="userHeaderInfo" class="hidden">
-      <span id="headerUserName" style="margin-right: 1rem;"></span>
+      <span id="headerUserName" style="margin-right: 1rem; font-weight: 500;"></span>
       <button onclick="logout()" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Log Out</button>
     </div>
   </header>
@@ -152,7 +156,7 @@
       </form>
     </div>
 
-    <!-- MAIN APP DASHBOARD VIEW -->
+    <!-- MAIN DASHBOARD VIEW -->
     <div id="dashboardView" class="hidden">
       <div class="nav-tabs">
         <button class="nav-tab active" id="tabSubmitBtn" onclick="switchDashboardTab('submit')">Submit Roster</button>
@@ -162,11 +166,26 @@
 
       <!-- Submit Roster Section -->
       <div id="sectionSubmit">
-        <h3>Submit Your Roster</h3>
+        <h3>Build Your Fantasy Roster</h3>
         <form onsubmit="handleRosterSubmit(event)">
-          <input type="text" id="teamIdentifier" placeholder="Stable / Team Name (e.g., Fast Trackers)" required>
+          <div style="margin-bottom: 1rem;">
+            <label for="teamIdentifier" style="display: block; font-weight: bold; margin-bottom: 0.25rem;">Stable / Team Name</label>
+            <input type="text" id="teamIdentifier" placeholder="e.g., Fast Trackers Racing" required>
+          </div>
+
           <div id="tiersContainer">Loading driver tiers...</div>
-          <button type="submit" style="margin-top: 1rem;">Save / Update Roster</button>
+
+          <div class="tier-section">
+            <h4>Select 2 Teams / Manufacturers</h4>
+            <select id="teamChoice1" style="margin-bottom: 0.5rem; width: 100%;">
+              <option value="">-- Select Team 1 --</option>
+            </select>
+            <select id="teamChoice2" style="width: 100%;">
+              <option value="">-- Select Team 2 --</option>
+            </select>
+          </div>
+
+          <button type="submit" style="margin-top: 1rem; padding: 1rem;">Save / Update Roster</button>
           <div id="submitStatus" style="margin-top: 0.5rem; font-weight: bold;"></div>
         </form>
       </div>
@@ -179,7 +198,7 @@
 
       <!-- Admin Panel Section -->
       <div id="sectionAdmin" class="hidden">
-        <h3>Admin Dashboard - All Participants</h3>
+        <h3>Admin Dashboard - All Participant Rosters</h3>
         <p>Logged in Admin: <span id="adminEmailDisplay" style="font-weight: bold;"></span></p>
         <div id="adminSubRosters">Loading participant rosters...</div>
       </div>
@@ -299,25 +318,33 @@
 
     function renderDriverForm(data) {
       let html = '';
+      const tierLabels = ["Tier 1 Drivers", "Tier 2 Drivers", "Tier 3 Drivers", "Tier 4 Drivers"];
+      
       ['tier1', 'tier2', 'tier3', 'tier4'].forEach((tierKey, idx) => {
-        html += `<div class="tier-section"><h4>Tier ${idx + 1} Drivers</h4>`;
+        html += `<div class="tier-section"><h4>${tierLabels[idx]}</h4>`;
         const drivers = data.tiers[tierKey] || [];
+        
+        // Render 3 selection slots per tier (adjust as needed for your exact layout)
         for (let i = 1; i <= 3; i++) {
           html += `<select name="${tierKey}_d${i}" style="margin: 0.25rem 0; width: 100%;">
             <option value="">-- Select Driver ${i} --</option>
-            ${drivers.map(d => `<option value="${d.name}">${d.name} (${d.team || 'Indy'})</option>`).join('')}
+            ${drivers.map(d => `<option value="${d.name}">${d.name} (${d.team || 'Indy'} - #${d.car || ''})</option>`).join('')}
           </select>`;
         }
         html += `</div>`;
       });
       document.getElementById('tiersContainer').innerHTML = html;
+
+      // Populate Team dropdowns
+      const teams = data.teams || [];
+      const teamOpts = `<option value="">-- Select Team --</option>` + teams.map(t => `<option value="${t}">${t}</option>`).join('');
+      document.getElementById('teamChoice1').innerHTML = teamOpts;
+      document.getElementById('teamChoice2').innerHTML = teamOpts;
     }
 
     async function handleRosterSubmit(e) {
       e.preventDefault();
       const teamIdentifier = document.getElementById('teamIdentifier').value;
-      
-      // Gather selects
       const selects = document.querySelectorAll('#tiersContainer select');
       const drivers = Array.from(selects).map(s => s.value);
 
@@ -329,7 +356,8 @@
         d4: drivers[3] || "", d5: drivers[4] || "", d6: drivers[5] || "",
         d7: drivers[6] || "", d8: drivers[7] || "", d9: drivers[8] || "",
         d10: drivers[9] || "",
-        t1: "", t2: ""
+        t1: document.getElementById('teamChoice1').value,
+        t2: document.getElementById('teamChoice2').value
       };
 
       const res = await callAPI("submitSelections", payload);
@@ -349,9 +377,12 @@
       if (res.found) {
         let html = '';
         res.teams.forEach(t => {
-          html += `<div style="border:1px solid #ddd; padding:1rem; margin-bottom:1rem; border-radius:4px;">
-            <h4>Stable: ${t.teamIdentifier}</h4>
-            <p style="font-size:0.9rem;"><b>Drivers:</b> ${t.drivers.filter(Boolean).join(', ')}</p>
+          const driversList = Array.isArray(t.drivers) ? t.drivers.filter(Boolean).join(', ') : '';
+          const teamsList = Array.isArray(t.teams) ? t.teams.filter(Boolean).join(' & ') : '';
+          html += `<div style="border:1px solid #ddd; padding:1rem; margin-bottom:1rem; border-radius:4px; background:#fafafa;">
+            <h4 style="margin:0 0 0.5rem 0; color:var(--primary);">Stable: ${t.teamIdentifier}</h4>
+            <p style="margin:0.25rem 0; font-size:0.9rem;"><b>Drivers:</b> ${driversList}</p>
+            <p style="margin:0.25rem 0; font-size:0.9rem;"><b>Selected Teams:</b> ${teamsList || 'None'}</p>
           </div>`;
         });
         container.innerHTML = html;
@@ -370,13 +401,16 @@
           container.innerHTML = '<p>No participant submissions found.</p>';
           return;
         }
-        let html = `<table><tr><th>Email</th><th>Name</th><th>Stable</th><th>Drivers</th></tr>`;
+        let html = `<table><tr><th>Email</th><th>Name</th><th>Stable</th><th>Drivers</th><th>Teams</th></tr>`;
         res.teams.forEach(t => {
+          const driversFormatted = Array.isArray(t.drivers) ? t.drivers.filter(Boolean).join(', ') : '';
+          const teamsFormatted = Array.isArray(t.teams) ? t.teams.filter(Boolean).join(' & ') : '';
           html += `<tr>
             <td>${t.email}</td>
             <td><b>${t.name}</b></td>
-            <td><b>${t.teamIdentifier}</b></td>
-            <td style="font-size: 11px;">${t.drivers.join(', ')}</td>
+            <td><b style="color:var(--primary);">${t.teamIdentifier}</b></td>
+            <td style="font-size: 11px;">${driversFormatted}</td>
+            <td><b>${teamsFormatted}</b></td>
           </tr>`;
         });
         html += '</table>';
