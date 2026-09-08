@@ -1,214 +1,202 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>NASCAR Fantasy League Hub</title>
   <style>
-    :root {
-      --primary: #d90429;
-      --dark: #2b2d42;
-      --light: #f8f9fa;
-      --gray: #8d99ae;
-      --border: #ced4da;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #f4f6f8;
-      color: var(--dark);
-      margin: 0;
-      padding: 0;
-      line-height: 1.5;
-    }
-    header {
-      background-color: var(--dark);
-      color: #fff;
-      padding: 1rem 2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 4px solid var(--primary);
-    }
-    header h1 {
-      margin: 0;
-      font-size: 1.5rem;
-    }
-    .container {
-      max-width: 900px;
-      margin: 2rem auto;
-      background: #fff;
-      padding: 2rem;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-    .hidden {
-      display: none !important;
-    }
-    form {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-    input, select, button {
-      padding: 0.75rem;
-      font-size: 1rem;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-    }
-    button {
-      background-color: var(--primary);
-      color: white;
-      border: none;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    button:hover {
-      background-color: #b50322;
-    }
-    .tier-section {
-      margin-bottom: 1.5rem;
-      padding: 1rem;
-      background: #fafafa;
-      border: 1px solid #e9ecef;
-      border-radius: 6px;
-    }
-    .tier-section h4 {
-      margin-top: 0;
-      color: var(--primary);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 1rem;
-    }
-    th, td {
-      border: 1px solid var(--border);
-      padding: 0.75rem;
-      text-align: left;
-      font-size: 0.9rem;
-    }
-    th {
-      background-color: #e9ecef;
-    }
-    .nav-tabs {
-      display: flex;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-      border-bottom: 2px solid var(--border);
-      padding-bottom: 0.5rem;
-    }
-    .nav-tab {
-      background: none;
-      border: none;
-      color: var(--gray);
-      font-size: 1rem;
-      font-weight: bold;
-      cursor: pointer;
-      padding: 0.5rem 1rem;
-    }
-    .nav-tab.active {
-      color: var(--primary);
-      border-bottom: 3px solid var(--primary);
-    }
-    .error-msg {
-      color: var(--primary);
-      font-weight: 500;
-      margin-top: 0.5rem;
-    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f9; color: #333; margin: 0; padding: 20px; }
+    .container { max-width: 850px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    h2 { text-align: center; color: #111; margin-bottom: 20px; }
+    
+    #authContainer { max-width: 400px; margin: 40px auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); text-align: center; }
+    .auth-toggle { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+    .auth-toggle button { background: #e9ecef; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .auth-toggle button.active { background: #d90429; color: #fff; }
+    
+    .nav-tabs { display: flex; gap: 8px; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px; justify-content: center; flex-wrap: wrap; }
+    .nav-tabs button { background: #e9ecef; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; color: #495057; font-size: 14px; }
+    .nav-tabs button.active { background: #d90429; color: #fff; }
+    
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    
+    .form-group { margin-bottom: 20px; text-align: left; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+    input[type="text"], input[type="email"], input[type="password"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+    .section-title { font-size: 16px; font-weight: bold; margin-top: 25px; margin-bottom: 10px; border-bottom: 2px solid #eee; padding-bottom: 5px; color: #d90429; text-align: left; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    button.action-btn { background: #d90429; color: white; border: none; padding: 12px 20px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 10px; transition: background 0.2s; }
+    button.action-btn:hover { background: #b70322; }
+    .loading { text-align: center; font-style: italic; color: #666; margin-top: 15px; }
+    
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
+    th, td { padding: 8px 10px; border: 1px solid #dee2e6; text-align: left; }
+    th { background: #f8f9fa; }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>NASCAR Fantasy League Hub</h1>
-    <div id="userHeaderInfo" class="hidden">
-      <span id="headerUserName" style="margin-right: 1rem; font-weight: 500;"></span>
-      <button onclick="logout()" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Log Out</button>
-    </div>
-  </header>
-
-  <div class="container">
-    <!-- AUTHENTICATION VIEW -->
-    <div id="authView">
-      <div class="nav-tabs">
-        <button class="nav-tab active" onclick="switchAuthTab('login')">Log In</button>
-        <button class="nav-tab" onclick="switchAuthTab('register')">Sign Up</button>
-      </div>
-
-      <!-- Login Form -->
-      <form id="loginForm" onsubmit="handleLogin(event)">
-        <h3>Welcome Back</h3>
-        <input type="email" id="loginEmail" placeholder="Email Address" required>
-        <input type="password" id="loginPassword" placeholder="Password / PIN" required>
-        <button type="submit">Log In</button>
-        <div id="loginError" class="error-msg"></div>
-      </form>
-
-      <!-- Register Form -->
-      <form id="registerForm" class="hidden" onsubmit="handleRegister(event)">
-        <h3>Create an Account</h3>
-        <input type="text" id="regName" placeholder="Full Name" required>
-        <input type="email" id="regEmail" placeholder="Email Address" required>
-        <input type="password" id="regPassword" placeholder="Create Password / PIN" required>
-        <button type="submit">Register</button>
-        <div id="regError" class="error-msg"></div>
-      </form>
+  <!-- LOGIN / SIGN UP GATEWAY -->
+  <div id="authContainer">
+    <h2>🏁 NASCAR Fantasy League</h2>
+    <div class="auth-toggle">
+      <button id="loginTabBtn" class="active" onclick="switchAuthMode('login')">Log In</button>
+      <button id="signupTabBtn" onclick="switchAuthMode('signup')">Sign Up</button>
     </div>
 
-    <!-- MAIN DASHBOARD VIEW -->
-    <div id="dashboardView" class="hidden">
-      <div class="nav-tabs">
-        <button class="nav-tab active" id="tabSubmitBtn" onclick="switchDashboardTab('submit')">Submit Roster</button>
-        <button class="nav-tab" id="tabMyTeamsBtn" onclick="switchDashboardTab('myTeams')">My Submissions</button>
-        <button class="nav-tab hidden" id="tabAdminBtn" onclick="switchDashboardTab('admin')">Admin Panel</button>
+    <form id="authForm" onsubmit="handleAuthSubmit(event)">
+      <div id="nameFieldGroup" class="form-group" style="display:none;">
+        <label>Full Name</label>
+        <input type="text" id="authName" placeholder="Brady McKay">
+      </div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="authEmail" required placeholder="name@example.com">
+      </div>
+      <div class="form-group">
+        <label>Password / PIN</label>
+        <input type="password" id="authPassword" required placeholder="••••••••">
+      </div>
+      <button type="submit" id="authBtn" class="action-btn">Log In</button>
+    </form>
+    <div id="authMessage" style="margin-top: 15px; font-size: 13px; color: #d90429;"></div>
+  </div>
+
+  <!-- MAIN DASHBOARD -->
+  <div id="mainDashboard" class="container" style="display:none;">
+    <h2>🏁 NASCAR Fantasy League Hub</h2>
+    <div style="text-align: right; margin-bottom: 10px; font-size: 13px; color: #666;">
+      Logged in as: <b id="loggedInUserDisplay"></b> | <a href="#" onclick="logout()" style="color: #d90429;">Log Out</a>
+    </div>
+    
+    <div class="nav-tabs">
+      <button class="active" onclick="switchTab(event, 'teamTab')">My Teams / Roster</button>
+      <button onclick="switchTab(event, 'resultsTab')">Race Results</button>
+      <button onclick="switchTab(event, 'standingsTab')">Standings</button>
+      <button id="adminNavTab" style="display:none; background: #2b2d42; color: #fff;" onclick="switchTab(event, 'adminTab')">Admin Panel</button>
+    </div>
+
+    <!-- TAB 1: TEAM SUBMISSION & MULTI-TEAM PORTAL -->
+    <div id="teamTab" class="tab-content active">
+      <div id="loading" class="loading">Loading drivers from baseline...</div>
+      
+      <div id="teamSelectorContainer" style="display:none; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <label style="color: #d90429;">Select or Create Team:</label>
+        <div style="display: flex; gap: 10px;">
+          <select id="userTeamSelector" onchange="handleTeamSelectionChange()" style="flex: 2;"></select>
+          <button type="button" class="action-btn" style="flex: 1; margin-top:0;" onclick="createNewTeamPrompt()">+ Create New Team</button>
+        </div>
       </div>
 
-      <!-- Submit Roster Section -->
-      <div id="sectionSubmit">
-        <h3>Build Your Fantasy Roster</h3>
-        <form onsubmit="handleRosterSubmit(event)">
-          <div style="margin-bottom: 1rem;">
-            <label for="teamIdentifier" style="display: block; font-weight: bold; margin-bottom: 0.25rem;">Stable / Team Name</label>
-            <input type="text" id="teamIdentifier" placeholder="e.g., Fast Trackers Racing" required>
+      <form id="fantasyForm" style="display:none;" onsubmit="handleFormSubmit(event)">
+        <div class="form-group">
+          <label>Team Identifier / Stable Name</label>
+          <input type="text" id="teamIdentifier" required placeholder="e.g. McKay Racing Team 1">
+        </div>
+
+        <div class="section-title">Tier 1: Top 4 (Pick 1 Driver)</div>
+        <div class="form-group"><select id="d1" class="driver-select" data-tier="1" required></select></div>
+
+        <div class="section-title">Tier 2: Ranks 5–16 (Pick 3 Drivers)</div>
+        <div class="form-group"><select id="d2" class="driver-select" data-tier="2" required></select></div>
+        <div class="form-group"><select id="d3" class="driver-select" data-tier="2" required></select></div>
+        <div class="form-group"><select id="d4" class="driver-select" data-tier="2" required></select></div>
+
+        <div class="section-title">Tier 3: Ranks 17–30 (Pick 4 Drivers)</div>
+        <div class="form-group"><select id="d5" class="driver-select" data-tier="3" required></select></div>
+        <div class="form-group"><select id="d6" class="driver-select" data-tier="3" required></select></div>
+        <div class="form-group"><select id="d7" class="driver-select" data-tier="3" required></select></div>
+        <div class="form-group"><select id="d8" class="driver-select" data-tier="3" required></select></div>
+
+        <div class="section-title">Tier 4: Ranks 31+ (Pick 2 Drivers)</div>
+        <div class="form-group"><select id="d9" class="driver-select" data-tier="4" required></select></div>
+        <div class="form-group"><select id="d10" class="driver-select" data-tier="4" required></select></div>
+
+        <div class="section-title">Race Teams (Pick 2 Teams)</div>
+        <p style="font-size: 12px; color: #666; margin-top: 0;">Teams associated with your selected drivers are automatically excluded.</p>
+        
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Team 1</label>
+            <select id="t1" class="team-select" required></select>
           </div>
-
-          <div id="tiersContainer">Loading driver tiers...</div>
-
-          <div class="tier-section">
-            <h4>Select 2 Teams / Manufacturers</h4>
-            <select id="teamChoice1" style="margin-bottom: 0.5rem; width: 100%;">
-              <option value="">-- Select Team 1 --</option>
-            </select>
-            <select id="teamChoice2" style="width: 100%;">
-              <option value="">-- Select Team 2 --</option>
-            </select>
+          <div class="form-group">
+            <label>Team 2</label>
+            <select id="t2" class="team-select" required></select>
           </div>
+        </div>
 
-          <button type="submit" style="margin-top: 1rem; padding: 1rem;">Save / Update Roster</button>
-          <div id="submitStatus" style="margin-top: 0.5rem; font-weight: bold;"></div>
-        </form>
+        <button type="submit" id="submitBtn" class="action-btn">Save / Submit Roster</button>
+      </form>
+    </div>
+
+    <!-- TAB 2: RACE RESULTS EXPLORER -->
+    <div id="resultsTab" class="tab-content">
+      <h3>Individual Race Results</h3>
+      <div class="form-group">
+        <label>Select Completed Race:</label>
+        <select id="raceSelect" onchange="fetchRaceResults()">
+          <option value="">-- Load Schedule First --</option>
+        </select>
+      </div>
+      <div id="resultsLoading" class="loading" style="display:none;">Loading official NASCAR feed...</div>
+      <div id="raceResultsContainer"></div>
+    </div>
+
+    <!-- TAB 3: STANDINGS -->
+    <div id="standingsTab" class="tab-content">
+      <h3>League Standings</h3>
+      <p>Cumulative standings calculated through selected race weeks.</p>
+      <div class="form-group">
+        <label>Select Cutoff Race:</label>
+        <select id="standingsRaceSelect">
+          <option value="">-- Select Cutoff Race --</option>
+        </select>
+      </div>
+      <button class="action-btn" onclick="alert('Standings view links directly to your active Google Sheets calculation engine.')">View Standings</button>
+    </div>
+
+    <!-- TAB 4: ADMIN PANEL -->
+    <div id="adminTab" class="tab-content">
+      <h3>League Administration Panel</h3>
+      <p>Logged in Admin: <span id="adminEmailDisplay" style="font-weight: bold; color: #d90429;"></span></p>
+      
+      <div style="margin-top: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="action-btn" style="width: auto; padding: 8px 16px; margin-top:0;" onclick="switchAdminSubTab('rosters')">View Participant Rosters</button>
+        <button class="action-btn" style="width: auto; padding: 8px 16px; margin-top:0; background: #2b2d42;" onclick="switchAdminSubTab('drivers')">Manage Drivers & Tiers</button>
+        <button class="action-btn" style="width: auto; padding: 8px 16px; margin-top:0; background: #198754;" onclick="switchAdminSubTab('custom')">Write-In Drivers</button>
       </div>
 
-      <!-- My Submissions Section -->
-      <div id="sectionMyTeams" class="hidden">
-        <h3>Your Saved Rosters</h3>
-        <div id="myTeamsList">Loading your submissions...</div>
+      <div id="adminSubRosters" class="admin-sub-content" style="margin-top: 20px;">
+        <p>Loading participant rosters...</p>
       </div>
 
-      <!-- Admin Panel Section -->
-      <div id="sectionAdmin" class="hidden">
-        <h3>Admin Dashboard - All Participant Rosters</h3>
-        <p>Logged in Admin: <span id="adminEmailDisplay" style="font-weight: bold;"></span></p>
-        <div id="adminSubRosters">Loading participant rosters...</div>
+      <div id="adminSubDrivers" class="admin-sub-content" style="margin-top: 20px; display:none;">
+        <h4>Driver Eligibility & Tier Adjustments</h4>
+        <div id="adminDriverTableContainer">Loading driver configuration...</div>
+        <button class="action-btn" onclick="saveDriverConfig()">Save Driver Configuration</button>
+      </div>
+
+      <div id="adminSubCustom" class="admin-sub-content" style="margin-top: 20px; display:none;">
+        <h4>Write-In Custom Drivers</h4>
+        <div id="customDriversTableContainer">Loading custom drivers...</div>
+        <button class="action-btn" style="background: #198754; margin-top: 10px;" onclick="addCustomDriverRow()">+ Add Another Custom Driver</button>
+        <button class="action-btn" style="margin-top: 10px;" onclick="saveCustomDriversConfig()">Save Custom Drivers</button>
       </div>
     </div>
   </div>
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbzMG87Z2WKta4ytG2O6jVl7R6diIvoRoyuwmu6AfnUdXo9W2QhzZ07Hs5vxaexvGhWj/exec";
-    let currentUser = null;
-    let driverDataCache = null;
+    
+    let globalTiers = {};
+    let globalTeams = [];
+    let allDriversLookup = {};
+    let userRegisteredTeams = [];
+    let scheduleLoaded = false;
+    let currentUser = { name: "", email: "", isAdmin: false };
+    let authMode = 'login';
 
     async function callAPI(action, payload = {}) {
       try {
@@ -224,200 +212,509 @@
       }
     }
 
-    function switchAuthTab(tab) {
-      document.querySelectorAll('#authView .nav-tab').forEach(el => el.classList.remove('active'));
-      if (tab === 'login') {
-        event.target.classList.add('active');
-        document.getElementById('loginForm').classList.remove('hidden');
-        document.getElementById('registerForm').classList.add('hidden');
+    function switchAuthMode(mode) {
+      authMode = mode;
+      const nameGroup = document.getElementById('nameFieldGroup');
+      const authBtn = document.getElementById('authBtn');
+      const loginBtn = document.getElementById('loginTabBtn');
+      const signupBtn = document.getElementById('signupTabBtn');
+      
+      document.getElementById('authMessage').textContent = '';
+      if (mode === 'signup') {
+        nameGroup.style.display = 'block';
+        authBtn.textContent = 'Create Account';
+        signupBtn.classList.add('active');
+        loginBtn.classList.remove('active');
       } else {
-        event.target.classList.add('active');
-        document.getElementById('registerForm').classList.remove('hidden');
-        document.getElementById('loginForm').classList.add('hidden');
+        nameGroup.style.display = 'none';
+        authBtn.textContent = 'Log In';
+        loginBtn.classList.add('active');
+        signupBtn.classList.remove('active');
       }
     }
 
-    async function handleLogin(e) {
+    async function handleAuthSubmit(e) {
       e.preventDefault();
-      const email = document.getElementById('loginEmail').value;
-      const password = document.getElementById('loginPassword').value;
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value.trim();
+      const name = document.getElementById('authName').value.trim();
+      const msgEl = document.getElementById('authMessage');
       
-      const res = await callAPI("login", { email, password });
-      if (res.success) {
-        currentUser = { email: email, name: res.name, isAdmin: res.isAdmin };
-        initDashboard();
+      msgEl.textContent = "Processing...";
+
+      if (authMode === 'signup') {
+        if (!name) { msgEl.textContent = "Please enter your full name."; return; }
+        const res = await callAPI("register", { name, email, password });
+        if (res.success) {
+          alert("Account created successfully! Please log in.");
+          switchAuthMode('login');
+        } else {
+          msgEl.textContent = res.error;
+        }
       } else {
-        document.getElementById('loginError').textContent = res.error;
+        const res = await callAPI("login", { email, password });
+        if (res.success) {
+          currentUser = { name: res.name, email: email, isAdmin: res.isAdmin };
+          startDashboard();
+        } else {
+          msgEl.textContent = res.error;
+        }
       }
     }
 
-    async function handleRegister(e) {
-      e.preventDefault();
-      const name = document.getElementById('regName').value;
-      const email = document.getElementById('regEmail').value;
-      const password = document.getElementById('regPassword').value;
+    async function startDashboard() {
+      document.getElementById('authContainer').style.display = 'none';
+      document.getElementById('mainDashboard').style.display = 'block';
+      document.getElementById('loggedInUserDisplay').textContent = `${currentUser.name} (${currentUser.email})`;
       
-      const res = await callAPI("register", { name, email, password });
+      if (currentUser.isAdmin) {
+        document.getElementById('adminNavTab').style.display = 'inline-block';
+        loadAdminDashboard();
+      }
+
+      const res = await callAPI("getDrivers");
       if (res.success) {
-        alert("Account created successfully! Please log in.");
-        switchAuthTab('login');
+        initForm(res.data);
       } else {
-        document.getElementById('regError').textContent = res.error;
+        alert("Error loading drivers: " + res.error);
       }
     }
 
     function logout() {
-      currentUser = null;
-      document.getElementById('dashboardView').classList.add('hidden');
-      document.getElementById('authView').classList.remove('hidden');
-      document.getElementById('userHeaderInfo').classList.add('hidden');
+      currentUser = { name: "", email: "", isAdmin: false };
+      document.getElementById('mainDashboard').style.display = 'none';
+      document.getElementById('authContainer').style.display = 'block';
+      document.getElementById('authForm').reset();
     }
 
-    async function initDashboard() {
-      document.getElementById('authView').classList.add('hidden');
-      document.getElementById('dashboardView').classList.remove('hidden');
-      document.getElementById('userHeaderInfo').classList.remove('hidden');
-      document.getElementById('headerUserName').textContent = currentUser.name;
-
-      if (currentUser.isAdmin) {
-        document.getElementById('tabAdminBtn').classList.remove('hidden');
-      }
-
-      await loadDriversForForm();
-    }
-
-    function switchDashboardTab(tab) {
-      document.querySelectorAll('#dashboardView .nav-tab').forEach(el => el.classList.remove('active'));
-      document.getElementById('sectionSubmit').classList.add('hidden');
-      document.getElementById('sectionMyTeams').classList.add('hidden');
-      document.getElementById('sectionAdmin').classList.add('hidden');
-
-      if (tab === 'submit') {
-        document.getElementById('tabSubmitBtn').classList.add('active');
-        document.getElementById('sectionSubmit').classList.remove('hidden');
-      } else if (tab === 'myTeams') {
-        document.getElementById('tabMyTeamsBtn').classList.add('active');
-        document.getElementById('sectionMyTeams').classList.remove('hidden');
-        loadMyTeams();
-      } else if (tab === 'admin') {
-        document.getElementById('tabAdminBtn').classList.add('active');
-        document.getElementById('sectionAdmin').classList.remove('hidden');
-        loadAdminDashboard();
-      }
-    }
-
-    async function loadDriversForForm() {
-      const res = await callAPI("getDrivers");
-      if (res.success) {
-        driverDataCache = res.data;
-        renderDriverForm(res.data);
-      } else {
-        document.getElementById('tiersContainer').innerHTML = `<p class="error-msg">Error loading drivers: ${res.error}</p>`;
-      }
-    }
-
-    function renderDriverForm(data) {
-      let html = '';
-      const tierLabels = ["Tier 1 Drivers", "Tier 2 Drivers", "Tier 3 Drivers", "Tier 4 Drivers"];
+    function switchTab(evt, tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-tabs button').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      evt.currentTarget.classList.add('active');
       
-      ['tier1', 'tier2', 'tier3', 'tier4'].forEach((tierKey, idx) => {
-        html += `<div class="tier-section"><h4>${tierLabels[idx]}</h4>`;
-        const drivers = data.tiers[tierKey] || [];
-        
-        // Render 3 selection slots per tier (adjust as needed for your exact layout)
-        for (let i = 1; i <= 3; i++) {
-          html += `<select name="${tierKey}_d${i}" style="margin: 0.25rem 0; width: 100%;">
-            <option value="">-- Select Driver ${i} --</option>
-            ${drivers.map(d => `<option value="${d.name}">${d.name} (${d.team || 'Indy'} - #${d.car || ''})</option>`).join('')}
-          </select>`;
-        }
-        html += `</div>`;
+      if (tabId === 'resultsTab' && !scheduleLoaded) {
+        loadScheduleDropdowns();
+      }
+    }
+
+    function switchAdminSubTab(sub) {
+      document.getElementById('adminSubRosters').style.display = (sub === 'rosters') ? 'block' : 'none';
+      document.getElementById('adminSubDrivers').style.display = (sub === 'drivers') ? 'block' : 'none';
+      document.getElementById('adminSubCustom').style.display = (sub === 'custom') ? 'block' : 'none';
+      
+      if (sub === 'rosters') loadAdminDashboard();
+      if (sub === 'drivers') loadAdminDriverEditor();
+      if (sub === 'custom') loadCustomDriverEditor();
+    }
+
+    async function loadScheduleDropdowns() {
+      document.getElementById('resultsLoading').style.display = 'block';
+      const races = await callAPI("getScheduleList", { year: 2026 }); // Handled via API or direct helper if exposed
+      // Fallback direct endpoint pattern if needed:
+      const response = await fetch("https://cf.nascar.com/cacher/2026/race_list_basic.json");
+      const data = await response.json();
+      const racesList = data.series_1 || [];
+      
+      const select = document.getElementById('raceSelect');
+      const standingsSelect = document.getElementById('standingsRaceSelect');
+      select.innerHTML = '<option value="">-- Choose a Race --</option>';
+      standingsSelect.innerHTML = '<option value="">-- Choose Cutoff Race --</option>';
+      
+      racesList.forEach(r => {
+        const opt = `<option value="${r.race_id}">${r.race_name} (${r.track_name})</option>`;
+        select.innerHTML += opt;
+        standingsSelect.innerHTML += opt;
       });
-      document.getElementById('tiersContainer').innerHTML = html;
-
-      // Populate Team dropdowns
-      const teams = data.teams || [];
-      const teamOpts = `<option value="">-- Select Team --</option>` + teams.map(t => `<option value="${t}">${t}</option>`).join('');
-      document.getElementById('teamChoice1').innerHTML = teamOpts;
-      document.getElementById('teamChoice2').innerHTML = teamOpts;
+      document.getElementById('resultsLoading').style.display = 'none';
+      scheduleLoaded = true;
     }
 
-    async function handleRosterSubmit(e) {
-      e.preventDefault();
-      const teamIdentifier = document.getElementById('teamIdentifier').value;
-      const selects = document.querySelectorAll('#tiersContainer select');
-      const drivers = Array.from(selects).map(s => s.value);
+    async function initForm(data) {
+      globalTiers = data.tiers;
+      globalTeams = data.teams;
+      allDriversLookup = {};
+      
+      ['tier1', 'tier2', 'tier3', 'tier4'].forEach(tKey => {
+        if (globalTiers[tKey]) {
+          globalTiers[tKey].forEach(d => {
+            allDriversLookup[d.name] = d;
+          });
+        }
+      });
 
-      const payload = {
-        email: currentUser.email,
-        name: currentUser.name,
-        teamIdentifier: teamIdentifier,
-        d1: drivers[0] || "", d2: drivers[1] || "", d3: drivers[2] || "",
-        d4: drivers[3] || "", d5: drivers[4] || "", d6: drivers[5] || "",
-        d7: drivers[6] || "", d8: drivers[7] || "", d9: drivers[8] || "",
-        d10: drivers[9] || "",
-        t1: document.getElementById('teamChoice1').value,
-        t2: document.getElementById('teamChoice2').value
-      };
-
-      const res = await callAPI("submitSelections", payload);
-      const statusEl = document.getElementById('submitStatus');
-      if (res.success) {
-        statusEl.style.color = "green";
-        statusEl.textContent = "Roster successfully saved!";
-      } else {
-        statusEl.style.color = "red";
-        statusEl.textContent = "Error saving roster: " + res.error;
-      }
-    }
-
-    async function loadMyTeams() {
-      const container = document.getElementById('myTeamsList');
-      const res = await callAPI("lookupTeam", { email: currentUser.email });
-      if (res.found) {
-        let html = '';
-        res.teams.forEach(t => {
-          const driversList = Array.isArray(t.drivers) ? t.drivers.filter(Boolean).join(', ') : '';
-          const teamsList = Array.isArray(t.teams) ? t.teams.filter(Boolean).join(' & ') : '';
-          html += `<div style="border:1px solid #ddd; padding:1rem; margin-bottom:1rem; border-radius:4px; background:#fafafa;">
-            <h4 style="margin:0 0 0.5rem 0; color:var(--primary);">Stable: ${t.teamIdentifier}</h4>
-            <p style="margin:0.25rem 0; font-size:0.9rem;"><b>Drivers:</b> ${driversList}</p>
-            <p style="margin:0.25rem 0; font-size:0.9rem;"><b>Selected Teams:</b> ${teamsList || 'None'}</p>
-          </div>`;
+      const driverSelects = document.querySelectorAll('.driver-select');
+      driverSelects.forEach(select => {
+        select.addEventListener('change', () => {
+          updateAllDriverDropdowns();
+          updateTeamDropdowns();
         });
-        container.innerHTML = html;
+      });
+
+      updateAllDriverDropdowns();
+
+      const teamRes = await callAPI("lookupTeam", { email: currentUser.email });
+      userRegisteredTeams = teamRes.teams || [];
+      const selector = document.getElementById('userTeamSelector');
+      const container = document.getElementById('teamSelectorContainer');
+      
+      if (userRegisteredTeams.length > 0) {
+        selector.innerHTML = '<option value="">-- Select Existing Team to View/Edit --</option>';
+        userRegisteredTeams.forEach((t, idx) => {
+          selector.innerHTML += `<option value="${idx}">${t.teamIdentifier}</option>`;
+        });
+        selector.innerHTML += `<option value="NEW">+ Create New Team</option>`;
+        container.style.display = 'block';
+        
+        selector.value = "0";
+        loadTeamIntoForm(userRegisteredTeams[0]);
       } else {
-        container.innerHTML = '<p>No team submissions found yet.</p>';
+        container.style.display = 'none';
+        document.getElementById('teamIdentifier').value = `${currentUser.name} - Team 1`;
       }
+      
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('fantasyForm').style.display = 'block';
+    }
+
+    function handleTeamSelectionChange() {
+      const val = document.getElementById('userTeamSelector').value;
+      if (val === "NEW") {
+        createNewTeamPrompt();
+      } else if (val !== "") {
+        const teamObj = userRegisteredTeams[Number(val)];
+        loadTeamIntoForm(teamObj);
+      }
+    }
+
+    function createNewTeamPrompt() {
+      const newName = prompt("Enter a unique name for your new team/stable:");
+      if (!newName) return;
+      
+      document.getElementById('teamIdentifier').value = newName.trim();
+      document.getElementById('fantasyForm').reset();
+      document.getElementById('teamIdentifier').value = newName.trim();
+      updateAllDriverDropdowns();
+      updateTeamDropdowns();
+    }
+
+    function loadTeamIntoForm(teamObj) {
+      document.getElementById('teamIdentifier').value = teamObj.teamIdentifier;
+      ['d1','d2','d3','d4','d5','d6','d7','d8','d9','d10'].forEach((id, idx) => {
+        const el = document.getElementById(id);
+        if (el) el.value = teamObj.drivers[idx] || '';
+      });
+      ['t1','t2'].forEach((id, idx) => {
+        const el = document.getElementById(id);
+        if (el) el.value = teamObj.teams[idx] || '';
+      });
+      updateAllDriverDropdowns();
+      updateTeamDropdowns();
+    }
+
+    function updateAllDriverDropdowns() {
+      const allSelects = document.querySelectorAll('.driver-select');
+      const selectedValues = Array.from(allSelects).map(s => s.value).filter(Boolean);
+
+      allSelects.forEach(select => {
+        const currentVal = select.value;
+        const tierNum = select.getAttribute('data-tier');
+        const tierKey = `tier${tierNum}`;
+        const driverList = globalTiers[tierKey] || [];
+
+        select.innerHTML = '<option value="">-- Select Driver --</option>';
+        driverList.forEach(d => {
+          if (d.name === currentVal || !selectedValues.includes(d.name)) {
+            let opt = document.createElement('option');
+            opt.value = d.name;
+            opt.textContent = `${d.name} (Rank ${d.rank} | ${d.team} - #${d.car})`;
+            if (d.name === currentVal) opt.selected = true;
+            select.appendChild(opt);
+          }
+        });
+      });
+    }
+
+    function updateTeamDropdowns() {
+      const selectedDrivers = Array.from(document.querySelectorAll('.driver-select'))
+        .map(s => s.value)
+        .filter(Boolean);
+        
+      const excludedTeams = new Set();
+      selectedDrivers.forEach(driverName => {
+        const found = allDriversLookup[driverName];
+        if (found && found.team) {
+          excludedTeams.add(found.team);
+        }
+      });
+
+      const teamSelects = document.querySelectorAll('.team-select');
+      teamSelects.forEach(select => {
+        const currentValue = select.value;
+        select.innerHTML = '<option value="">-- Select Team --</option>';
+        
+        globalTeams.forEach(team => {
+          if (!excludedTeams.has(team)) {
+            let opt = document.createElement('option');
+            opt.value = team;
+            opt.textContent = team;
+            if (team === currentValue) opt.selected = true;
+            select.appendChild(opt);
+          }
+        });
+      });
     }
 
     async function loadAdminDashboard() {
-      document.getElementById('adminEmailDisplay').textContent = currentUser.email;
+      const email = currentUser && currentUser.email ? currentUser.email : "";
+      document.getElementById('adminEmailDisplay').textContent = email || "Admin";
+      
+      const res = await callAPI("adminGetAllTeams", { email });
       const container = document.getElementById('adminSubRosters');
-      const res = await callAPI("adminGetAllTeams", { email: currentUser.email });
+      
+      if (!res) {
+        container.innerHTML = '<p style="color:red;">Error: Server returned empty response.</p>';
+        return;
+      }
       
       if (res.success) {
         if (!res.teams || res.teams.length === 0) {
-          container.innerHTML = '<p>No participant submissions found.</p>';
+          container.innerHTML = '<p>No team submissions found yet in the Form Submissions sheet.</p>';
           return;
         }
-        let html = `<table><tr><th>Email</th><th>Name</th><th>Stable</th><th>Drivers</th><th>Teams</th></tr>`;
+        
+        let html = `<h4>All Participant Rosters (${res.teams.length})</h4>`;
+        html += `<table>
+          <tr>
+            <th>Email</th>
+            <th>Participant Name</th>
+            <th>Team / Stable Name</th>
+            <th>Drivers (1 - 10)</th>
+            <th>Selected Teams</th>
+          </tr>`;
+          
         res.teams.forEach(t => {
           const driversFormatted = Array.isArray(t.drivers) ? t.drivers.filter(Boolean).join(', ') : '';
           const teamsFormatted = Array.isArray(t.teams) ? t.teams.filter(Boolean).join(' & ') : '';
+          
           html += `<tr>
             <td>${t.email}</td>
             <td><b>${t.name}</b></td>
-            <td><b style="color:var(--primary);">${t.teamIdentifier}</b></td>
-            <td style="font-size: 11px;">${driversFormatted}</td>
+            <td><b style="color: #d90429;">${t.teamIdentifier}</b></td>
+            <td style="font-size: 12px; line-height: 1.4;">${driversFormatted}</td>
             <td><b>${teamsFormatted}</b></td>
           </tr>`;
         });
+        
         html += '</table>';
         container.innerHTML = html;
       } else {
-        container.innerHTML = `<p class="error-msg">${res.error}</p>`;
+        container.innerHTML = '<p style="color:red;">' + (res.error || "Unknown error") + '</p>';
       }
+    }
+
+    async function loadAdminDriverEditor() {
+      const res = await callAPI("adminGetDriverManagementList", { email: currentUser.email });
+      if (res.success) {
+        let html = '<table><tr><th>Driver Name</th><th>Action</th><th>Tier Override</th><th>Team</th><th>Car #</th></tr>';
+        const allDrivers = res.allDrivers || [];
+        const overrides = res.overrides || {};
+        
+        allDrivers.forEach((d) => {
+          const ov = overrides[d.name] || { action: 'include', tier: 0, team: d.team, car: d.car };
+          html += `<tr data-driver="${d.name}">
+            <td><b>${d.name}</b> (2025 Rank ${d.rank})</td>
+            <td>
+              <select class="admin-action">
+                <option value="include" ${ov.action !== 'omit' ? 'selected' : ''}>Include</option>
+                <option value="omit" ${ov.action === 'omit' ? 'selected' : ''}>Omit</option>
+              </select>
+            </td>
+            <td>
+              <select class="admin-tier">
+                <option value="0" ${ov.tier === 0 ? 'selected' : ''}>Default (Auto)</option>
+                <option value="1" ${ov.tier === 1 ? 'selected' : ''}>Tier 1</option>
+                <option value="2" ${ov.tier === 2 ? 'selected' : ''}>Tier 2</option>
+                <option value="3" ${ov.tier === 3 ? 'selected' : ''}>Tier 3</option>
+                <option value="4" ${ov.tier === 4 ? 'selected' : ''}>Tier 4</option>
+              </select>
+            </td>
+            <td><input type="text" class="admin-team" value="${ov.team || d.team}"></td>
+            <td><input type="text" class="admin-car" value="${ov.car || d.car}" style="width: 60px;"></td>
+          </tr>`;
+        });
+        html += '</table>';
+        document.getElementById('adminDriverTableContainer').innerHTML = html;
+      }
+    }
+
+    async function loadCustomDriverEditor() {
+      const res = await callAPI("adminGetDriverManagementList", { email: currentUser.email });
+      let html = '<table><tr><th>Driver Name</th><th>Assigned Tier</th><th>Team</th><th>Car #</th><th>Action</th></tr>';
+      const existingCustom = res.customDrivers || [];
+      if (existingCustom.length === 0) {
+        existingCustom.push({ name: '', tier: 4, team: '', car: '' });
+      }
+      
+      existingCustom.forEach((d) => {
+        html += `<tr class="custom-driver-row">
+          <td><input type="text" class="cd-name" value="${d.name}" placeholder="Driver Full Name"></td>
+          <td>
+            <select class="cd-tier">
+              <option value="1" ${d.tier === 1 ? 'selected' : ''}>Tier 1</option>
+              <option value="2" ${d.tier === 2 ? 'selected' : ''}>Tier 2</option>
+              <option value="3" ${d.tier === 3 ? 'selected' : ''}>Tier 3</option>
+              <option value="4" ${d.tier === 4 ? 'selected' : ''}>Tier 4</option>
+            </select>
+          </td>
+          <td><input type="text" class="cd-team" value="${d.team}" placeholder="Team Name"></td>
+          <td><input type="text" class="cd-car" value="${d.car}" placeholder="Car #" style="width: 60px;"></td>
+          <td><button type="button" onclick="this.closest('tr').remove()" style="background:#d90429; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Remove</button></td>
+        </tr>`;
+      });
+      html += '</table>';
+      document.getElementById('customDriversTableContainer').innerHTML = html;
+    }
+
+    function addCustomDriverRow() {
+      const container = document.querySelector('#customDriversTableContainer table');
+      if (!container) return;
+      const row = document.createElement('tr');
+      row.className = 'custom-driver-row';
+      row.innerHTML = `
+        <td><input type="text" class="cd-name" placeholder="Driver Full Name"></td>
+        <td>
+          <select class="cd-tier">
+            <option value="1">Tier 1</option>
+            <option value="2">Tier 2</option>
+            <option value="3">Tier 3</option>
+            <option value="4" selected>Tier 4</option>
+          </select>
+        </td>
+        <td><input type="text" class="cd-team" placeholder="Team Name"></td>
+        <td><input type="text" class="cd-car" placeholder="Car #" style="width: 60px;"></td>
+        <td><button type="button" onclick="this.closest('tr').remove()" style="background:#d90429; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Remove</button></td>
+      `;
+      container.appendChild(row);
+    }
+
+    async function saveDriverConfig() {
+      const rows = document.querySelectorAll('#adminDriverTableContainer tr[data-driver]');
+      const overrideList = [];
+      rows.forEach(r => {
+        const name = r.getAttribute('data-driver');
+        const action = r.querySelector('.admin-action').value;
+        const tier = Number(r.querySelector('.admin-tier').value);
+        const team = r.querySelector('.admin-team').value.trim();
+        const car = r.querySelector('.admin-car').value.trim();
+        if (action === 'omit' || tier > 0 || team || car) {
+          overrideList.push({ name, action, tier, team, car });
+        }
+      });
+
+      const res = await callAPI("adminSaveDriverOverrides", { email: currentUser.email, overrideList });
+      if (res.success) {
+        alert("Driver configs saved! Reloading form...");
+        const dRes = await callAPI("getDrivers");
+        if (dRes.success) initForm(dRes.data);
+      }
+    }
+
+    async function saveCustomDriversConfig() {
+      const rows = document.querySelectorAll('.custom-driver-row');
+      const customList = [];
+      rows.forEach(r => {
+        const name = r.querySelector('.cd-name').value.trim();
+        const tier = Number(r.querySelector('.cd-tier').value);
+        const team = r.querySelector('.cd-team').value.trim();
+        const car = r.querySelector('.cd-car').value.trim();
+        if (name) customList.push({ name, tier, team, car });
+      });
+
+      const res = await callAPI("adminSaveCustomDrivers", { email: currentUser.email, customDriversList: customList });
+      if (res.success) {
+        alert("Custom drivers saved! Reloading form...");
+        const dRes = await callAPI("getDrivers");
+        if (dRes.success) initForm(dRes.data);
+      }
+    }
+
+    async function fetchRaceResults() {
+      const raceId = document.getElementById('raceSelect').value;
+      if (!raceId) return;
+      
+      document.getElementById('resultsLoading').style.display = 'block';
+      const response = await fetch(`https://cf.nascar.com/cacher/2026/1/${raceId}/weekend-feed.json`);
+      const data = await response.json();
+      document.getElementById('resultsLoading').style.display = 'none';
+      
+      const container = document.getElementById('raceResultsContainer');
+      if (!data || !data.weekend_race || !data.weekend_race[0] || !data.weekend_race[0].results) {
+        container.innerHTML = '<p>No results available for this race yet.</p>';
+        return;
+      }
+      
+      const results = data.weekend_race[0].results;
+      results.sort((a, b) => (a.finishing_position || 999) - (b.finishing_position || 999));
+      
+      let html = '<table><tr><th>Finish Pos</th><th>Start Pos</th><th>Driver Name</th><th>Car Number</th><th>Team Name</th><th>Laps Completed</th><th>Laps Led</th><th>Status</th></tr>';
+      results.forEach(r => {
+        html += `<tr>
+          <td>${r.finishing_position || ""}</td>
+          <td>${r.starting_position || ""}</td>
+          <td><b>${r.driver_fullname || ""}</b></td>
+          <td>${r.car_number || ""}</td>
+          <td>${r.team_name || ""}</td>
+          <td>${r.laps_completed || 0}</td>
+          <td>${r.laps_led || 0}</td>
+          <td>${r.finishing_status || ""}</td>
+        </tr>`;
+      });
+      html += '</table>';
+      container.innerHTML = html;
+    }
+
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = "Saving...";
+
+      const formData = {
+        name: currentUser.name,
+        email: currentUser.email,
+        teamIdentifier: document.getElementById('teamIdentifier').value.trim(),
+        d1: document.getElementById('d1').value,
+        d2: document.getElementById('d2').value,
+        d3: document.getElementById('d3').value,
+        d4: document.getElementById('d4').value,
+        d5: document.getElementById('d5').value,
+        d6: document.getElementById('d6').value,
+        d7: document.getElementById('d7').value,
+        d8: document.getElementById('d8').value,
+        d9: document.getElementById('d9').value,
+        d10: document.getElementById('d10').value,
+        t1: document.getElementById('t1').value,
+        t2: document.getElementById('t2').value
+      };
+
+      const res = await callAPI("submitSelections", formData);
+      if (res.success) {
+        alert("Roster saved successfully!");
+        const teamRes = await callAPI("lookupTeam", { email: currentUser.email });
+        userRegisteredTeams = teamRes.teams || [];
+        const selector = document.getElementById('userTeamSelector');
+        selector.innerHTML = '<option value="">-- Select Existing Team to View/Edit --</option>';
+        userRegisteredTeams.forEach((t, idx) => {
+          selector.innerHTML += `<option value="${idx}">${t.teamIdentifier}</option>`;
+        });
+        selector.innerHTML += `<option value="NEW">+ Create New Team</option>`;
+        document.getElementById('teamSelectorContainer').style.display = 'block';
+      } else {
+        alert("Submission error: " + res.error);
+      }
+      btn.disabled = false;
+      btn.textContent = "Save / Submit Roster";
     }
   </script>
 </body>
