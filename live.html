@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NASCAR Fantasy League - Live Race Center</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f9; color: #333; margin: 0; padding: 20px; }
+    .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    h2 { text-align: center; color: #111; margin-bottom: 20px; }
+    
+    .nav-tabs { display: flex; gap: 8px; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px; justify-content: center; flex-wrap: wrap; }
+    .nav-tabs a { text-decoration: none; }
+    .nav-tabs button { background: #e9ecef; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; color: #495057; font-size: 14px; }
+    .nav-tabs button.active { background: #d90429; color: #fff; }
+    
+    .status-banner { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; background: #2b2d42; color: #fff; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
+    .status-item span { display: block; font-weight: bold; color: #ff334b; font-size: 16px; }
+
+    .loading { text-align: center; font-style: italic; color: #666; margin-top: 15px; }
+    
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; overflow-x: auto; display: block; }
+    th, td { padding: 8px 10px; border: 1px solid #dee2e6; text-align: left; }
+    th { background: #f8f9fa; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>🏁 NASCAR Fantasy League</h2>
+    <div style="text-align: right; margin-bottom: 10px; font-size: 13px; color: #666;">
+      <a href="index.html" style="color: #d90429; font-weight: bold;">← Back to Main Hub</a>
+    </div>
+    
+    <div class="nav-tabs">
+      <a href="roster.html"><button>My Teams / Roster</button></a>
+      <a href="results.html"><button>Race Results</button></a>
+      <a href="live.html"><button class="active">Live Telemetry</button></a>
+      <a href="standings.html"><button>Standings</button></a>
+    </div>
+
+    <!-- LIVE RACE DASHBOARD -->
+    <div>
+      <h3>Live Race Center</h3>
+      
+      <div class="status-banner" id="statusBanner">
+        <div class="status-item">Race: <span id="lblRace">Connecting...</span></div>
+        <div class="status-item">Track: <span id="lblTrack">--</span></div>
+        <div class="status-item">Flag State: <span id="lblFlag">--</span></div>
+        <div class="status-item">Laps: <span id="lblLaps">-- / --</span></div>
+        <div class="status-item">Stage: <span id="lblStage">--</span></div>
+      </div>
+
+      <div id="liveLoading" class="loading">Connecting to NASCAR live telemetry feeds...</div>
+      <div id="liveTableContainer"></div>
+    </div>
+  </div>
+
+  <script>
+    const statusMap = { 1: "Running", 3: "Out", 6: "Off Track" };
+
+    function getFlagDesc(code) {
+      switch (Number(code)) {
+        case 0: return 'None';
+        case 1: return 'Green 🟢';
+        case 2: return 'Yellow 🟡';
+        case 3: return 'Red 🔴';
+        case 4: return 'White ⚪';
+        case 5: return 'Checkered 🏁';
+        case 8: return 'Hot Track';
+        case 9: return 'Cold Track';
+        default: return 'Active';
+      }
+    }
+
+    async function fetchLiveFeed() {
+      try {
+        const [feedRes, pointsRes] = await Promise.all([
+          fetch("https://cf.nascar.com/live/feeds/live-feed.json"),
+          fetch("https://cf.nascar.com/live/feeds/live-points.json")
+        ]);
+        
+        const feedData = await feedRes.json();
+        const pointsData = await pointsRes.json();
+        
+        if (!feedData || !feedData.vehicles) {
+          document.getElementById('liveLoading').textContent = "Live feed currently unavailable (No active race session).";
+          return;
+        }
+
+        // Update Banner
+        document.getElementById('lblRace').textContent = feedData.run_name || "Live Race";
+        document.getElementById('lblTrack').textContent = feedData.track_name || "Track";
+        document.getElementById('lblFlag').textContent = getFlagDesc(feedData.flag_state);
+        document.getElementById('lblLaps').textContent = `${feedData.lap_number || 0} / ${feedData.laps_in_race || 0}`;
+        
+        let stageNum = "N/A";
+        if (feedData.stage && feedData.stage.stage_num !== undefined) stageNum = feedData.stage.stage_num;
+        document.getElementById('lblStage').textContent = stageNum;
+
+        const pointsMap = {};
+        if (Array.isArray(pointsData)) {
+          pointsData.forEach(p => pointsMap[String(p.car_number)] = p);
+        }
+
+        const vehicles = feedData.vehicles.sort((a, b) => (a.running_position || a.position || 99) - (b.running_position || b.position || 99));
+
+        let html = `<table>
+          <tr>
+            <th>Pos</th>
+            <th>Start</th>
+            <th>Car #</th>
+            <th>Driver</th>
+            <th>Delta</th>
+            <th>Laps</th>
+            <th>Status</th>
+            <th>Live Pts</th>
+            <th>S1</th>
+            <th>S2</th>
+            <th>S3</th>
+          </tr>`;
+
+        vehicles.forEach(v => {
+          const p = pointsMap[String(v.vehicle_number)] || {};
+          const driverName = v.driver ? (v.driver.full_name || `${v.driver.first_name || ''} ${v.driver.last_name || ''}`) : "Unknown";
+          
+          html += `<tr>
+            <td><b>${v.running_position || v.position || ""}</b></td>
+            <td>${v.starting_position || ""}</td>
+            <td>${v.vehicle_number || ""}</td>
+            <td><b>${driverName}</b></td>
+            <td>${v.delta || 0}</td>
+            <td>${v.laps_completed || 0}</td>
+            <td>${statusMap[v.status] || 'Running'}</td>
+            <td><b>${p.points_earned_this_race || 0}</b></td>
+            <td>${p.stage_1_points || 0}</td>
+            <td>${p.stage_2_points || 0}</td>
+            <td>${p.stage_3_points || 0}</td>
+          </tr>`;
+        });
+        html += '</table>';
+
+        document.getElementById('liveTableContainer').innerHTML = html;
+        document.getElementById('liveLoading').style.display = 'none';
+
+      } catch (err) {
+        console.error("Live feed fetch error:", err);
+        document.getElementById('liveLoading').textContent = "Waiting for live race telemetry feed to broadcast...";
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchLiveFeed();
+      // Auto-refresh every 10 seconds during race weekends
+      setInterval(fetchLiveFeed, 10000);
+    });
+  </script>
+</body>
+</html>
