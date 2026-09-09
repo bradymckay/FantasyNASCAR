@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NASCAR Fantasy League - Admin Panel</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f9; color: #333; margin: 0; padding: 20px; }
+    .container { max-width: 900px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    h2 { text-align: center; color: #111; margin-bottom: 20px; }
+    
+    .nav-tabs { display: flex; gap: 8px; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px; justify-content: center; flex-wrap: wrap; }
+    .nav-tabs a { text-decoration: none; }
+    .nav-tabs button { background: #e9ecef; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; color: #495057; font-size: 14px; }
+    .nav-tabs button.active { background: #d90429; color: #fff; }
+    
+    .form-group { margin-bottom: 20px; text-align: left; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+    input[type="text"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+    button.action-btn { background: #d90429; color: white; border: none; padding: 10px 16px; font-size: 14px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
+    button.action-btn:hover { background: #b70322; }
+    .loading { text-align: center; font-style: italic; color: #666; margin-top: 15px; }
+    
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
+    th, td { padding: 8px 10px; border: 1px solid #dee2e6; text-align: left; }
+    th { background: #f8f9fa; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>🏁 NASCAR Fantasy League</h2>
+    <div style="text-align: right; margin-bottom: 10px; font-size: 13px; color: #666;">
+      <a href="index.html" style="color: #d90429; font-weight: bold;">← Back to Main Hub</a>
+    </div>
+    
+    <div class="nav-tabs">
+      <a href="roster.html"><button>My Teams / Roster</button></a>
+      <a href="results.html"><button>Race Results</button></a>
+      <a href="standings.html"><button>Standings</button></a>
+      <a href="admin.html"><button class="active" style="background: #2b2d42; color: #fff;">Admin Panel</button></a>
+    </div>
+
+    <!-- ADMIN PANEL CONTAINER -->
+    <div id="adminPanelContent">
+      <div id="accessDenied" style="display:none; text-align: center; padding: 40px; color: #d90429;">
+        <h3>Access Denied</h3>
+        <p>Your account is not authorized to access the Admin Panel.</p>
+      </div>
+
+      <div id="adminMainSection" style="display:none;">
+        <h3>League Administration Panel</h3>
+        <p>Logged in Admin: <span id="adminEmailDisplay" style="font-weight: bold; color: #d90429;"></span></p>
+        
+        <div style="margin-top: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px; display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="action-btn" onclick="switchAdminSubTab('rosters')">View Participant Rosters</button>
+          <button class="action-btn" style="background: #2b2d42;" onclick="switchAdminSubTab('drivers')">Manage Drivers & Tiers</button>
+          <button class="action-btn" style="background: #198754;" onclick="switchAdminSubTab('custom')">Write-In Drivers</button>
+        </div>
+
+        <div id="adminSubRosters" class="admin-sub-content" style="margin-top: 20px;">
+          <p class="loading">Loading participant rosters...</p>
+        </div>
+
+        <div id="adminSubDrivers" class="admin-sub-content" style="margin-top: 20px; display:none;">
+          <h4>Driver Eligibility & Tier Adjustments</h4>
+          <div id="adminDriverTableContainer">Loading driver configuration...</div>
+          <button class="action-btn" style="margin-top: 15px;" onclick="saveDriverConfig()">Save Driver Configuration</button>
+        </div>
+
+        <div id="adminSubCustom" class="admin-sub-content" style="margin-top: 20px; display:none;">
+          <h4>Write-In Custom Drivers</h4>
+          <div id="customDriversTableContainer">Loading custom drivers...</div>
+          <button class="action-btn" style="background: #198754; margin-top: 10px;" onclick="addCustomDriverRow()">+ Add Another Custom Driver</button>
+          <button class="action-btn" style="margin-top: 10px;" onclick="saveCustomDriversConfig()">Save Custom Drivers</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbzMG87Z2WKta4ytG2O6jVl7R6diIvoRoyuwmu6AfnUdXo9W2QhzZ07Hs5vxaexvGhWj/exec";
+    let currentUser = { name: "", email: "", isAdmin: false };
+
+    async function callAPI(action, payload = {}) {
+      try {
+        payload.action = action;
+        const response = await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        return await response.json();
+      } catch (err) {
+        console.error("API Error:", err);
+        return { success: false, error: err.toString() };
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const savedUser = localStorage.getItem('nascarUser');
+      if (savedUser) {
+        try {
+          currentUser = JSON.parse(savedUser);
+        } catch(e) {}
+      }
+
+      if (!currentUser.email) {
+        document.getElementById('accessDenied').style.display = 'block';
+        return;
+      }
+
+      document.getElementById('adminEmailDisplay').textContent = currentUser.email;
+
+      // Verify admin status against backend Admin Config
+      const loginCheck = await callAPI("login", { email: currentUser.email, password: "BYPASS_CHECK_OR_SESSION" });
+      
+      // Request admin rosters to confirm permission
+      const res = await callAPI("adminGetAllTeams", { email: currentUser.email });
+      
+      if (res.success) {
+        currentUser.isAdmin = true;
+        document.getElementById('adminMainSection').style.display = 'block';
+        renderAdminRosters(res.teams);
+      } else {
+        document.getElementById('accessDenied').style.display = 'block';
+      }
+    });
+
+    function switchAdminSubTab(sub) {
+      document.getElementById('adminSubRosters').style.display = (sub === 'rosters') ? 'block' : 'none';
+      document.getElementById('adminSubDrivers').style.display = (sub === 'drivers') ? 'block' : 'none';
+      document.getElementById('adminSubCustom').style.display = (sub === 'custom') ? 'block' : 'none';
+      
+      if (sub === 'rosters') loadAdminDashboard();
+      if (sub === 'drivers') loadAdminDriverEditor();
+      if (sub === 'custom') loadCustomDriverEditor();
+    }
+
+    async function loadAdminDashboard() {
+      const res = await callAPI("adminGetAllTeams", { email: currentUser.email });
+      if (res.success) {
+        renderAdminRosters(res.teams);
+      }
+    }
+
+    function renderAdminRosters(teams) {
+      const container = document.getElementById('adminSubRosters');
+      if (!teams || teams.length === 0) {
+        container.innerHTML = '<p>No team submissions found yet.</p>';
+        return;
+      }
+      
+      let html = `<h4>All Participant Rosters (${teams.length})</h4>`;
+      html += `<table>
+        <tr>
+          <th>Email</th>
+          <th>Participant Name</th>
+          <th>Team / Stable Name</th>
+          <th>Drivers (1 - 10)</th>
+          <th>Selected Teams</th>
+        </tr>`;
+        
+      teams.forEach(t => {
+        const driversFormatted = Array.isArray(t.drivers) ? t.drivers.filter(Boolean).join(', ') : '';
+        const teamsFormatted = Array.isArray(t.teams) ? t.teams.filter(Boolean).join(' & ') : '';
+        
+        html += `<tr>
+          <td>${t.email}</td>
+          <td><b>${t.name}</b></td>
+          <td><b style="color: #d90429;">${t.teamIdentifier}</b></td>
+          <td style="font-size: 12px; line-height: 1.4;">${driversFormatted}</td>
+          <td><b>${teamsFormatted}</b></td>
+        </tr>`;
+      });
+      
+      html += '</table>';
+      container.innerHTML = html;
+    }
+
+    async function loadAdminDriverEditor() {
+      const res = await callAPI("adminGetDriverManagementList", { email: currentUser.email });
+      if (res.success) {
+        let html = '<table><tr><th>Driver Name</th><th>Action</th><th>Tier Override</th><th>Team</th><th>Car #</th></tr>';
+        const allDrivers = res.allDrivers || [];
+        const overrides = res.overrides || {};
+        
+        allDrivers.forEach((d) => {
+          const ov = overrides[d.name] || { action: 'include', tier: 0, team: d.team, car: d.car };
+          html += `<tr data-driver="${d.name}">
+            <td><b>${d.name}</b> (2025 Rank ${d.rank})</td>
+            <td>
+              <select class="admin-action">
+                <option value="include" ${ov.action !== 'omit' ? 'selected' : ''}>Include</option>
+                <option value="omit" ${ov.action === 'omit' ? 'selected' : ''}>Omit</option>
+              </select>
+            </td>
+            <td>
+              <select class="admin-tier">
+                <option value="0" ${ov.tier === 0 ? 'selected' : ''}>Default (Auto)</option>
+                <option value="1" ${ov.tier === 1 ? 'selected' : ''}>Tier 1</option>
+                <option value="2" ${ov.tier === 2 ? 'selected' : ''}>Tier 2</option>
+                <option value="3" ${ov.tier === 3 ? 'selected' : ''}>Tier 3</option>
+                <option value="4" ${ov.tier === 4 ? 'selected' : ''}>Tier 4</option>
+              </select>
+            </td>
+            <td><input type="text" class="admin-team" value="${ov.team || d.team}"></td>
+            <td><input type="text" class="admin-car" value="${ov.car || d.car}" style="width: 60px;"></td>
+          </tr>`;
+        });
+        html += '</table>';
+        document.getElementById('adminDriverTableContainer').innerHTML = html;
+      }
+    }
+
+    async function loadCustomDriverEditor() {
+      const res = await callAPI("adminGetDriverManagementList", { email: currentUser.email });
+      let html = '<table><tr><th>Driver Name</th><th>Assigned Tier</th><th>Team</th><th>Car #</th><th>Action</th></tr>';
+      const existingCustom = res.customDrivers || [];
+      if (existingCustom.length === 0) {
+        existingCustom.push({ name: '', tier: 4, team: '', car: '' });
+      }
+      
+      existingCustom.forEach((d) => {
+        html += `<tr class="custom-driver-row">
+          <td><input type="text" class="cd-name" value="${d.name}" placeholder="Driver Full Name"></td>
+          <td>
+            <select class="cd-tier">
+              <option value="1" ${d.tier === 1 ? 'selected' : ''}>Tier 1</option>
+              <option value="2" ${d.tier === 2 ? 'selected' : ''}>Tier 2</option>
+              <option value="3" ${d.tier === 3 ? 'selected' : ''}>Tier 3</option>
+              <option value="4" ${d.tier === 4 ? 'selected' : ''}>Tier 4</option>
+            </select>
+          </td>
+          <td><input type="text" class="cd-team" value="${d.team}" placeholder="Team Name"></td>
+          <td><input type="text" class="cd-car" value="${d.car}" placeholder="Car #" style="width: 60px;"></td>
+          <td><button type="button" onclick="this.closest('tr').remove()" style="background:#d90429; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Remove</button></td>
+        </tr>`;
+      });
+      html += '</table>';
+      document.getElementById('customDriversTableContainer').innerHTML = html;
+    }
+
+    function addCustomDriverRow() {
+      const container = document.querySelector('#customDriversTableContainer table');
+      if (!container) return;
+      const row = document.createElement('tr');
+      row.className = 'custom-driver-row';
+      row.innerHTML = `
+        <td><input type="text" class="cd-name" placeholder="Driver Full Name"></td>
+        <td>
+          <select class="cd-tier">
+            <option value="1">Tier 1</option>
+            <option value="2">Tier 2</option>
+            <option value="3">Tier 3</option>
+            <option value="4" selected>Tier 4</option>
+          </select>
+        </td>
+        <td><input type="text" class="cd-team" placeholder="Team Name"></td>
+        <td><input type="text" class="cd-car" placeholder="Car #" style="width: 60px;"></td>
+        <td><button type="button" onclick="this.closest('tr').remove()" style="background:#d90429; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Remove</button></td>
+      `;
+      container.appendChild(row);
+    }
+
+    async function saveDriverConfig() {
+      const rows = document.querySelectorAll('#adminDriverTableContainer tr[data-driver]');
+      const overrideList = [];
+      rows.forEach(r => {
+        const name = r.getAttribute('data-driver');
+        const action = r.querySelector('.admin-action').value;
+        const tier = Number(r.querySelector('.admin-tier').value);
+        const team = r.querySelector('.admin-team').value.trim();
+        const car = r.querySelector('.admin-car').value.trim();
+        if (action === 'omit' || tier > 0 || team || car) {
+          overrideList.push({ name, action, tier, team, car });
+        }
+      });
+
+      const res = await callAPI("adminSaveDriverOverrides", { email: currentUser.email, overrideList });
+      if (res.success) {
+        alert("Driver configs saved successfully!");
+      } else {
+        alert("Error saving: " + res.error);
+      }
+    }
+
+    async function saveCustomDriversConfig() {
+      const rows = document.querySelectorAll('.custom-driver-row');
+      const customList = [];
+      rows.forEach(r => {
+        const name = r.querySelector('.cd-name').value.trim();
+        const tier = Number(r.querySelector('.cd-tier').value);
+        const team = r.querySelector('.cd-team').value.trim();
+        const car = r.querySelector('.cd-car').value.trim();
+        if (name) customList.push({ name, tier, team, car });
+      });
+
+      const res = await callAPI("adminSaveCustomDrivers", { email: currentUser.email, customDriversList: customList });
+      if (res.success) {
+        alert("Custom drivers saved successfully!");
+      } else {
+        alert("Error saving: " + res.error);
+      }
+    }
+  </script>
+</body>
+</html>
