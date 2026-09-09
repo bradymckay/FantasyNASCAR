@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NASCAR Fantasy League - Roster Management</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f6f9; color: #333; margin: 0; padding: 20px; }
+    .container { max-width: 850px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    h2 { text-align: center; color: #111; margin-bottom: 20px; }
+    
+    .nav-tabs { display: flex; gap: 8px; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px; justify-content: center; flex-wrap: wrap; }
+    .nav-tabs a { text-decoration: none; }
+    .nav-tabs button { background: #e9ecef; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; color: #495057; font-size: 14px; }
+    .nav-tabs button.active { background: #d90429; color: #fff; }
+    
+    .form-group { margin-bottom: 20px; text-align: left; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
+    input[type="text"], select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+    .section-title { font-size: 16px; font-weight: bold; margin-top: 25px; margin-bottom: 10px; border-bottom: 2px solid #eee; padding-bottom: 5px; color: #d90429; text-align: left; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    button.action-btn { background: #d90429; color: white; border: none; padding: 12px 20px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; margin-top: 10px; transition: background 0.2s; }
+    button.action-btn:hover { background: #b70322; }
+    .loading { text-align: center; font-style: italic; color: #666; margin-top: 15px; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>🏁 NASCAR Fantasy League</h2>
+    <div style="text-align: right; margin-bottom: 10px; font-size: 13px; color: #666;">
+      <a href="index.html" style="color: #d90429; font-weight: bold;">← Back to Main Hub / Log Out</a>
+    </div>
+    
+    <div class="nav-tabs">
+      <button class="active">My Teams / Roster</button>
+      <a href="results.html"><button>Race Results</button></a>
+      <a href="standings.html"><button>Standings</button></a>
+    </div>
+
+    <!-- TEAM SUBMISSION & MULTI-TEAM PORTAL -->
+    <div id="teamTab" class="tab-content">
+      <div id="loading" class="loading">Loading drivers from baseline...</div>
+      
+      <div id="teamSelectorContainer" style="display:none; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <label style="color: #d90429;">Select or Create Team:</label>
+        <div style="display: flex; gap: 10px;">
+          <select id="userTeamSelector" onchange="handleTeamSelectionChange()" style="flex: 2;"></select>
+          <button type="button" class="action-btn" style="flex: 1; margin-top:0;" onclick="createNewTeamPrompt()">+ Create New Team</button>
+        </div>
+      </div>
+
+      <form id="fantasyForm" style="display:none;" onsubmit="handleFormSubmit(event)">
+        <div class="form-group">
+          <label>Team Identifier / Stable Name</label>
+          <input type="text" id="teamIdentifier" required placeholder="e.g. Racing Team 1">
+        </div>
+
+        <div class="section-title">Tier 1: Top 4 (Pick 1 Driver)</div>
+        <div class="form-group"><select id="d1" class="driver-select" data-tier="1" required></select></div>
+
+        <div class="section-title">Tier 2: Ranks 5–16 (Pick 3 Drivers)</div>
+        <div class="form-group"><select id="d2" class="driver-select" data-tier="2" required></select></div>
+        <div class="form-group"><select id="d3" class="driver-select" data-tier="2" required></select></div>
+        <div class="form-group"><select id="d4" class="driver-select" data-tier="2" required></select></div>
+
+        <div class="section-title">Tier 3: Ranks 17–30 (Pick 4 Drivers)</div>
+        <div class="form-group"><select id="d5" class="driver-select" data-tier="3" required></select></div>
+        <div class="form-group"><select id="d6" class="driver-select" data-tier="3" required></select></div>
+        <div class="form-group"><select id="d7" class="driver-select" data-tier="3" required></select></div>
+        <div class="form-group"><select id="d8" class="driver-select" data-tier="3" required></select></div>
+
+        <div class="section-title">Tier 4: Ranks 31+ (Pick 2 Drivers)</div>
+        <div class="form-group"><select id="d9" class="driver-select" data-tier="4" required></select></div>
+        <div class="form-group"><select id="d10" class="driver-select" data-tier="4" required></select></div>
+
+        <div class="section-title">Race Teams (Pick 2 Teams)</div>
+        <p style="font-size: 12px; color: #666; margin-top: 0;">Teams associated with your selected drivers are automatically excluded.</p>
+        
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Team 1</label>
+            <select id="t1" class="team-select" required></select>
+          </div>
+          <div class="form-group">
+            <label>Team 2</label>
+            <select id="t2" class="team-select" required></select>
+          </div>
+        </div>
+
+        <button type="submit" id="submitBtn" class="action-btn">Save / Submit Roster</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbzMG87Z2WKta4ytG2O6jVl7R6diIvoRoyuwmu6AfnUdXo9W2QhzZ07Hs5vxaexvGhWj/exec";
+    
+    let globalTiers = {};
+    let globalTeams = [];
+    let allDriversLookup = {};
+    let userRegisteredTeams = [];
+    let currentUser = { name: "Participant", email: "user@example.com" }; // Will pull from session/localStorage in multi-page flow
+
+    async function callAPI(action, payload = {}) {
+      try {
+        payload.action = action;
+        const response = await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        return await response.json();
+      } catch (err) {
+        console.error("API Error:", err);
+        return { success: false, error: err.toString() };
+      }
+    }
+
+    // Initialize data on page load
+    window.addEventListener('DOMContentLoaded', async () => {
+      const res = await callAPI("getDrivers");
+      if (res.success) {
+        initForm(res.data);
+      } else {
+        document.getElementById('loading').textContent = "Error loading drivers: " + res.error;
+      }
+    });
+
+    async function initForm(data) {
+      globalTiers = data.tiers;
+      globalTeams = data.teams;
+      allDriversLookup = {};
+      
+      ['tier1', 'tier2', 'tier3', 'tier4'].forEach(tKey => {
+        if (globalTiers[tKey]) {
+          globalTiers[tKey].forEach(d => {
+            allDriversLookup[d.name] = d;
+          });
+        }
+      });
+
+      const driverSelects = document.querySelectorAll('.driver-select');
+      driverSelects.forEach(select => {
+        select.addEventListener('change', () => {
+          updateAllDriverDropdowns();
+          updateTeamDropdowns();
+        });
+      });
+
+      updateAllDriverDropdowns();
+
+      const teamRes = await callAPI("lookupTeam", { email: currentUser.email });
+      userRegisteredTeams = teamRes.teams || [];
+      const selector = document.getElementById('userTeamSelector');
+      const container = document.getElementById('teamSelectorContainer');
+      
+      if (userRegisteredTeams.length > 0) {
+        selector.innerHTML = '<option value="">-- Select Existing Team to View/Edit --</option>';
+        userRegisteredTeams.forEach((t, idx) => {
+          selector.innerHTML += `<option value="${idx}">${t.teamIdentifier}</option>`;
+        });
+        selector.innerHTML += `<option value="NEW">+ Create New Team</option>`;
+        container.style.display = 'block';
+        
+        selector.value = "0";
+        loadTeamIntoForm(userRegisteredTeams[0]);
+      } else {
+        container.style.display = 'none';
+        document.getElementById('teamIdentifier').value = `${currentUser.name} - Team 1`;
+      }
+      
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('fantasyForm').style.display = 'block';
+    }
+
+    function handleTeamSelectionChange() {
+      const val = document.getElementById('userTeamSelector').value;
+      if (val === "NEW") {
+        createNewTeamPrompt();
+      } else if (val !== "") {
+        const teamObj = userRegisteredTeams[Number(val)];
+        loadTeamIntoForm(teamObj);
+      }
+    }
+
+    function createNewTeamPrompt() {
+      const newName = prompt("Enter a unique name for your new team/stable:");
+      if (!newName) return;
+      
+      document.getElementById('teamIdentifier').value = newName.trim();
+      document.getElementById('fantasyForm').reset();
+      document.getElementById('teamIdentifier').value = newName.trim();
+      updateAllDriverDropdowns();
+      updateTeamDropdowns();
+    }
+
+    function loadTeamIntoForm(teamObj) {
+      document.getElementById('teamIdentifier').value = teamObj.teamIdentifier;
+      ['d1','d2','d3','d4','d5','d6','d7','d8','d9','d10'].forEach((id, idx) => {
+        const el = document.getElementById(id);
+        if (el) el.value = teamObj.drivers[idx] || '';
+      });
+      ['t1','t2'].forEach((id, idx) => {
+        const el = document.getElementById(id);
+        if (el) el.value = teamObj.teams[idx] || '';
+      });
+      updateAllDriverDropdowns();
+      updateTeamDropdowns();
+    }
+
+    function updateAllDriverDropdowns() {
+      const allSelects = document.querySelectorAll('.driver-select');
+      const selectedValues = Array.from(allSelects).map(s => s.value).filter(Boolean);
+
+      allSelects.forEach(select => {
+        const currentVal = select.value;
+        const tierNum = select.getAttribute('data-tier');
+        const tierKey = `tier${tierNum}`;
+        const driverList = globalTiers[tierKey] || [];
+
+        select.innerHTML = '<option value="">-- Select Driver --</option>';
+        driverList.forEach(d => {
+          if (d.name === currentVal || !selectedValues.includes(d.name)) {
+            let opt = document.createElement('option');
+            opt.value = d.name;
+            opt.textContent = `${d.name} (Rank ${d.rank} | ${d.team} - #${d.car})`;
+            if (d.name === currentVal) opt.selected = true;
+            select.appendChild(opt);
+          }
+        });
+      });
+    }
+
+    function updateTeamDropdowns() {
+      const selectedDrivers = Array.from(document.querySelectorAll('.driver-select'))
+        .map(s => s.value)
+        .filter(Boolean);
+        
+      const excludedTeams = new Set();
+      selectedDrivers.forEach(driverName => {
+        const found = allDriversLookup[driverName];
+        if (found && found.team) {
+          excludedTeams.add(found.team);
+        }
+      });
+
+      const teamSelects = document.querySelectorAll('.team-select');
+      teamSelects.forEach(select => {
+        const currentValue = select.value;
+        select.innerHTML = '<option value="">-- Select Team --</option>';
+        
+        globalTeams.forEach(team => {
+          if (!excludedTeams.has(team)) {
+            let opt = document.createElement('option');
+            opt.value = team;
+            opt.textContent = team;
+            if (team === currentValue) opt.selected = true;
+            select.appendChild(opt);
+          }
+        });
+      });
+    }
+
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = "Saving...";
+
+      const formData = {
+        name: currentUser.name,
+        email: currentUser.email,
+        teamIdentifier: document.getElementById('teamIdentifier').value.trim(),
+        d1: document.getElementById('d1').value,
+        d2: document.getElementById('d2').value,
+        d3: document.getElementById('d3').value,
+        d4: document.getElementById('d4').value,
+        d5: document.getElementById('d5').value,
+        d6: document.getElementById('d6').value,
+        d7: document.getElementById('d7').value,
+        d8: document.getElementById('d8').value,
+        d9: document.getElementById('d9').value,
+        d10: document.getElementById('d10').value,
+        t1: document.getElementById('t1').value,
+        t2: document.getElementById('t2').value
+      };
+
+      const res = await callAPI("submitSelections", formData);
+      if (res.success) {
+        alert("Roster saved successfully!");
+        const teamRes = await callAPI("lookupTeam", { email: currentUser.email });
+        userRegisteredTeams = teamRes.teams || [];
+        const selector = document.getElementById('userTeamSelector');
+        selector.innerHTML = '<option value="">-- Select Existing Team to View/Edit --</option>';
+        userRegisteredTeams.forEach((t, idx) => {
+          selector.innerHTML += `<option value="${idx}">${t.teamIdentifier}</option>`;
+        });
+        selector.innerHTML += `<option value="NEW">+ Create New Team</option>`;
+        document.getElementById('teamSelectorContainer').style.display = 'block';
+      } else {
+        alert("Submission error: " + res.error);
+      }
+      btn.disabled = false;
+      btn.textContent = "Save / Submit Roster";
+    }
+  </script>
+</body>
+</html>
