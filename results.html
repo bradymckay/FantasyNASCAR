@@ -70,10 +70,15 @@
         const select = document.getElementById('raceSelect');
         select.innerHTML = '<option value="">-- Choose a Race --</option>';
         
-        racesList.forEach(r => {
+        racesList.forEach((r, idx) => {
           const opt = document.createElement('option');
           opt.value = r.race_id;
-          opt.textContent = `${r.race_number}. ${r.race_name} (${r.track_name}) - ${r.date_str || ''}`;
+          const raceNum = r.race_number || r.race_num || (idx + 1);
+          const raceName = r.race_name || r.name || "Race";
+          const trackName = r.track_name || "";
+          const dateStr = r.date_str ? ` - ${r.date_str}` : "";
+          
+          opt.textContent = `${raceNum}. ${raceName} (${trackName})${dateStr}`;
           select.appendChild(opt);
         });
       } catch (err) {
