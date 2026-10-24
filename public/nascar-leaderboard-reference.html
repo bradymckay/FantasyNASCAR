@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏁 NASCAR Live Race Feed</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+        }
+        .leader-stripe {
+            background: linear-gradient(90deg, #fef3c7 0%, #fde68a 100%);
+        }
+        .position-up {
+            color: #10b981;
+            font-weight: 600;
+        }
+        .position-down {
+            color: #ef4444;
+            font-weight: 600;
+        }
+        .flag-green { background: #22c55e; color: white; }
+        .flag-yellow { background: #eab308; color: black; }
+        .flag-red { background: #ef4444; color: white; }
+        .flag-white { background: #ffffff; color: #000; border: 2px solid #000; }
+        .flag-checkered { 
+            background: repeating-linear-gradient(
+                45deg,
+                #000,
+                #000 10px,
+                #fff 10px,
+                #fff 20px
+            );
+            color: white;
+            text-shadow: 0 0 3px black;
+        }
+        .flag-hot-track { background: #f97316; color: white; }
+        .flag-cold-track { background: #3b82f6; color: white; }
+        .status-running { color: #22c55e; font-weight: 600; }
+        .status-out { color: #ef4444; font-weight: 600; }
+        .status-pit { color: #f59e0b; font-weight: 600; }
+        @keyframes pulse-live {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .pulse-live {
+            animation: pulse-live 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .tab-active {
+            border-bottom: 3px solid #3b82f6;
+            color: #3b82f6;
+        }
+        .pit-in { background-color: #fef3c7; }
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .content-spacing {
+            padding-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const FLAG_STATES = {
+            0: { name: 'None', class: 'bg-gray-500 text-white' },
+            1: { name: 'Green', class: 'flag-green' },
+            2: { name: 'Yellow', class: 'flag-yellow' },
+            3: { name: 'Red', class: 'flag-red' },
+            4: { name: 'White', class: 'flag-white' },
+            5: { name: 'Checkered', class: 'flag-checkered' },
+            6: { name: 'Who Knows 1', class: 'bg-purple-500 text-white' },
+            7: { name: 'Who Knows 2', class: 'bg-pink-500 text-white' },
+            8: { name: 'Hot Track', class: 'flag-hot-track' },
+            9: { name: 'Cold Track', class: 'flag-cold-track' }
+        };
+
+        const SERIES_NAMES = {
+            1: 'NASCAR Cup Series',
+            2: 'NASCAR Xfinity Series',
+            3: 'NASCAR Truck Series'
+        };
+
+        function NascarLiveApp() {
+            const [currentView, setCurrentView] = useState('live-feed');
+            const [raceData, setRaceData] = useState(null);
+            const [pitData, setPitData] = useState(null);
+            const [pointsData, setPointsData] = useState(null);
+            const [stagePointsData, setStagePointsData] = useState(null);
+            const [flagData, setFlagData] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+            const [autoRefresh, setAutoRefresh] = useState(true);
+            const [lastUpdate, setLastUpdate] = useState(null);
+
+            const BASE_URL = 'https://cf.nascar.com/live/feeds';
+
+            const fetchAllData = async () => {
+                try {
+                    const [raceRes, pitRes, pointsRes, stageRes, flagRes] = await Promise.allSettled([
+                        fetch(`${BASE_URL}/live-feed.json`),
+                        fetch(`${BASE_URL}/live-pit-data.json`),
+                        fetch(`${BASE_URL}/live-points.json`),
+                        fetch(`${BASE_URL}/live-stage-points.json`),
+                        fetch(`${BASE_URL}/live-flag-data.json`)
+                    ]);
+
+                    if (raceRes.status === 'fulfilled' && raceRes.value.ok) {
+                        const data = await raceRes.value.json();
+                        setRaceData(data);
+                        setError(null);
+                    } else {
+                        setError('No live race data available');
+                    }
+
+                    if (pitRes.status === 'fulfilled' && pitRes.value.ok) {
+                        const data = await pitRes.value.json();
+                        setPitData(data);
+                    }
+
+                    if (pointsRes.status === 'fulfilled' && pointsRes.value.ok) {
+                        const data = await pointsRes.value.json();
+                        setPointsData(data);
+                    }
+
+                    if (stageRes.status === 'fulfilled' && stageRes.value.ok) {
+                        const data = await stageRes.value.json();
+                        setStagePointsData(data);
+                    }
+
+                    if (flagRes.status === 'fulfilled' && flagRes.value.ok) {
+                        const data = await flagRes.value.json();
+                        setFlagData(data);
+                    }
+
+                    setLastUpdate(new Date());
+                    setLoading(false);
+                } catch (err) {
+                    console.error('Error fetching data:', err);
+                    setError(err.message);
+                    setLoading(false);
+                }
+            };
+
+            useEffect(() => {
+                fetchAllData();
+            }, []);
+
+            useEffect(() => {
+                if (!autoRefresh) return;
+                
+                const interval = setInterval(() => {
+                    fetchAllData();
+                }, 3000); // Update every 3 seconds
+
+                return () => clearInterval(interval);
+            }, [autoRefresh]);
+
+            const formatTime = (seconds) => {
+                if (!seconds) return '--';
+                const mins = Math.floor(seconds / 60);
+                const secs = (seconds % 60).toFixed(3);
+                return `${mins}:${secs.padStart(6, '0')}`;
+            };
+
+            const formatDelta = (delta) => {
+                if (!delta || delta === 0) return 'Leader';
+                return `+${delta.toFixed(3)}`;
+            };
+
+            const getPitStatus = (vehicleNumber) => {
+                if (!pitData?.vehicles) return null;
+                const pitVehicle = pitData.vehicles.find(v => v.vehicle_number === vehicleNumber);
+                return pitVehicle;
+            };
+
+            if (loading) {
+                return (
+                    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mb-4"></div>
+                            <p className="text-white text-xl">Loading NASCAR Live Data...</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            const vehicles = raceData?.vehicles || [];
+            const sortedVehicles = [...vehicles].sort((a, b) => 
+                (a.running_position || 999) - (b.running_position || 999)
+            );
+            
+            const flagState = raceData?.flag_state || 0;
+            const currentFlag = FLAG_STATES[flagState] || FLAG_STATES[0];
+            const seriesName = SERIES_NAMES[raceData?.series_id] || 'NASCAR';
+            const isRaceActive = raceData?.lap_number > 0;
+
+            const LiveFeedView = () => {
+                const vehicles = raceData?.vehicles || [];
+                const sortedVehicles = [...vehicles].sort((a, b) => 
+                    (a.running_position || 999) - (b.running_position || 999)
+                );
+                
+                // Find the fastest lap overall
+                const fastestLapTime = Math.min(
+                    ...vehicles
+                        .filter(v => v.best_lap_time && v.best_lap_time > 0)
+                        .map(v => v.best_lap_time)
+                );
+
+                return (
+                    <div className="bg-white rounded-lg shadow overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-800 text-white">
+                                    <tr>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Pos</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Car</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Driver</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Interval</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Laps</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Status</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Pit</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Led</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Best</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Last</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {sortedVehicles.map((vehicle, index) => {
+                                        const isLeader = vehicle.running_position === 1;
+                                        const posChange = vehicle.starting_position && vehicle.running_position 
+                                            ? vehicle.starting_position - vehicle.running_position 
+                                            : 0;
+                                        const pitStatus = getPitStatus(vehicle.vehicle_number);
+                                        const isInPit = pitStatus?.pit_in_flag === 1;
+                                        const hasFastestLap = vehicle.best_lap_time === fastestLapTime && fastestLapTime > 0;
+
+                                        return (
+                                            <tr 
+                                                key={vehicle.vehicle_number || index}
+                                                className={`hover:bg-gray-50 transition-colors ${
+                                                    isLeader ? 'leader-stripe' : ''
+                                                } ${isInPit ? 'pit-in' : ''}`}
+                                            >
+                                                <td className="px-3 py-3 whitespace-nowrap">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className={`font-bold text-lg ${isLeader ? 'text-yellow-700' : 'text-gray-900'}`}>
+                                                            {vehicle.running_position || '--'}
+                                                        </span>
+                                                        {posChange !== 0 && (
+                                                            <span className={`text-xs ${posChange > 0 ? 'position-up' : 'position-down'}`}>
+                                                                {posChange > 0 ? '▲' : '▼'}{Math.abs(posChange)}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 py-3 whitespace-nowrap">
+                                                    <span className="font-bold text-lg text-gray-900">
+                                                        #{vehicle.vehicle_number}
+                                                    </span>
+                                                </td>
+                                                <td className="px-3 py-3">
+                                                    <div>
+                                                        <p className="font-semibold text-gray-900 flex items-center gap-1">
+                                                            {vehicle.driver?.full_name || 'Unknown'}
+                                                            {hasFastestLap && (
+                                                                <span className="text-purple-600 font-bold text-lg" title="Fastest Lap">⚡</span>
+                                                            )}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500">
+                                                            {vehicle.vehicle_manufacturer}
+                                                        </p>
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 py-3 whitespace-nowrap text-gray-700 font-mono text-sm">
+                                                    {formatDelta(vehicle.delta)}
+                                                </td>
+                                                <td className="px-3 py-3 whitespace-nowrap text-gray-700">
+                                                    {vehicle.laps_completed || 0}
+                                                </td>
+                                                <td className="px-3 py-3 whitespace-nowrap">
+                                                    {isInPit ? (
+                                                        <span className="status-pit">● In Pit</span>
+                                                    ) : (
+                                                        <span className={vehicle.status === 1 ? 'status-running' : 'status-out'}>
+                                                            {vehicle.status === 1 ? '● Running' : '○ Out'}
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-3 py-3 whitespace-nowrap text-gray-700 text-sm">
+                                                    {pitStatus?.number_of_pit_stops || 0}
+                                                </td>
+                                                <td className="px-3 py-3 whitespace-nowrap text-gray-700">
+                                                    {vehicle.laps_led?.length > 0 
+                                                        ? vehicle.laps_led.reduce((sum, range) => 
+                                                            sum + (range.end_lap - range.start_lap + 1), 0)
+                                                        : 0}
+                                                </td>
+                                                <td className="px-3 py-3 whitespace-nowrap text-gray-700 font-mono text-sm">
+                                                    {vehicle.best_lap_time ? formatTime(vehicle.best_lap_time) : '--'}
+                                                </td>
+                                                <td className="px-3 py-3 whitespace-nowrap text-gray-700 font-mono text-sm">
+                                                    {vehicle.last_lap_time ? formatTime(vehicle.last_lap_time) : '--'}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                );
+            };
+
+            const LivePointsView = () => {
+                // The API returns an array directly, not an object with a standings property
+                const allStandings = Array.isArray(pointsData) ? pointsData : [];
+                
+                // Filter to only show drivers with car numbers (removes duplicates/empty entries)
+                // and only show points-eligible drivers in the main standings
+                const standings = allStandings.filter(driver => 
+                    driver.car_number && driver.car_number.trim() !== '' && driver.is_points_eligible
+                );
+                
+                // Calculate comprehensive 2026 season statistics
+                const calculateSeasonStats = (driver) => {
+                    // Get current race data for this driver
+                    const vehicle = raceData?.vehicles?.find(v => v.vehicle_number === driver.car_number);
+                    const currentPosition = vehicle?.running_position || 999;
+                    const startPosition = vehicle?.starting_position || 999;
+                    const lapsLed = vehicle?.laps_led?.reduce((sum, range) => 
+                        sum + (range.end_lap - range.start_lap + 1), 0) || 0;
+                    const isRunning = vehicle?.status === 1;
+                    const isFinished = raceData?.flag_state === 5 || raceData?.flag_state === 4; // Checkered flag
+                    
+                    // Find fastest lap across all drivers
+                    let hasFastestLap = false;
+                    if (vehicle?.best_lap_time && vehicle.best_lap_time > 0) {
+                        const allBestLaps = raceData?.vehicles
+                            ?.filter(v => v.best_lap_time && v.best_lap_time > 0)
+                            ?.map(v => v.best_lap_time) || [];
+                        const fastestTime = Math.min(...allBestLaps);
+                        hasFastestLap = vehicle.best_lap_time === fastestTime;
+                    }
+                    
+                    // Only count final stats if race is finished
+                    let wins = 0, top5 = 0, top10 = 0, dnfs = 0, avgFinish = 0;
+                    
+                    if (isFinished) {
+                        wins = currentPosition === 1 ? 1 : 0;
+                        top5 = currentPosition <= 5 ? 1 : 0;
+                        top10 = currentPosition <= 10 ? 1 : 0;
+                        dnfs = !isRunning ? 1 : 0;
+                        avgFinish = currentPosition;
+                    } else {
+                        // During race, show current running position for avg finish
+                        avgFinish = isRunning ? currentPosition : 0;
+                    }
+                    
+                    // Stage wins and points from today
+                    const stageWins = (driver.stage_1_winner ? 1 : 0) + 
+                                     (driver.stage_2_winner ? 1 : 0) + 
+                                     (driver.stage_3_winner ? 1 : 0);
+                    const stagePoints = (driver.stage_1_points || 0) + 
+                                       (driver.stage_2_points || 0) + 
+                                       (driver.stage_3_points || 0);
+                    
+                    // Poles (if they started 1st)
+                    const poles = startPosition === 1 ? 1 : 0;
+                    
+                    // Average start (just this race for now)
+                    const avgStart = startPosition;
+                    
+                    // Fastest laps (only if they have THE fastest lap in the race)
+                    const fastestLaps = hasFastestLap ? 1 : 0;
+                    
+                    return {
+                        wins,
+                        top5,
+                        top10,
+                        stageWins,
+                        stagePoints,
+                        avgStart,
+                        avgFinish,
+                        lapsLed,
+                        poles,
+                        fastestLaps,
+                        dnfs
+                    };
+                };
+                
+                return (
+                    <div className="bg-white rounded-lg shadow overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-800 text-white">
+                                    <tr>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase sticky left-0 bg-gray-800 z-10">Pos</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase sticky left-12 bg-gray-800 z-10">Driver</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Pts</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Behind</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Wins</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Top 5</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Top 10</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Stage W</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Stage Pts</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Avg St</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Avg Fin</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Laps Led</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Poles</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">Fast Laps</th>
+                                        <th className="px-3 py-3 text-left text-xs font-semibold uppercase">DNFs</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {standings.map((driver, index) => {
+                                        const isLeader = driver.points_position === 1;
+                                        const stats = calculateSeasonStats(driver);
+                                        
+                                        return (
+                                            <tr 
+                                                key={`${driver.driver_id}-${driver.car_number}`}
+                                                className={`hover:bg-gray-50 transition-colors ${
+                                                    isLeader ? 'leader-stripe' : ''
+                                                }`}
+                                            >
+                                                <td className="px-3 py-3 sticky left-0 bg-white z-10">
+                                                    <span className={`font-bold text-lg ${isLeader ? 'text-yellow-700' : 'text-gray-900'}`}>
+                                                        {driver.points_position}
+                                                    </span>
+                                                </td>
+                                                <td className="px-3 py-3 sticky left-12 bg-white z-10">
+                                                    <div>
+                                                        <p className="font-semibold text-gray-900 text-sm">
+                                                            {driver.first_name} {driver.last_name}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500">#{driver.car_number}</p>
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 py-3 font-bold text-gray-900">
+                                                    {driver.points}
+                                                </td>
+                                                <td className="px-3 py-3 text-gray-700">
+                                                    {isLeader ? '--' : driver.delta_leader}
+                                                </td>
+                                                <td className="px-3 py-3 text-gray-700">
+                                                    {stats.wins}
+                                                </td>
+                                                <td className="px-3 py-3 text-gray-700">
+                                                    {stats.top5}
+                                                </td>
+                                                <td className="px-3 py-3 text-gray-700">
+                                                    {stats.top10}
+                                                </td>
+                                                <td className="px-3 py-3 text-gray-700">
+                                                    {stats.stageWins}
+                                                </td>
+                                                <td className="px-3 py-3 text-gray-700">
+                                                    {stats.stagePoints}
+                                                </td>
+                                                <td className="px-3 py-3 text-gray-700">
+                                                    {stats.avgStart > 0 && stats.avgStart < 999 ? stats.avgStart.toFixed(1) : '--'}
+                                                </td>
+                                                <td className="px-3 py-3 text-gray-700">
+                                                    {stats.avgFinish > 0 && stats.avgFinish < 999 ? stats.avgFinish.toFixed(1) : '--'}
+                                                </td>
+                                                <td className="px-3 py-3 text-gray-700">
+                                                    {stats.lapsLed}
+                                                </td>
+                                                <td className="px-3 py-3 text-gray-700">
+                                                    {stats.poles}
+                                                </td>
+                                                <td className="px-3 py-3 text-gray-700">
+                                                    {stats.fastestLaps}
+                                                </td>
+                                                <td className="px-3 py-3 text-gray-700">
+                                                    {stats.dnfs}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                );
+            };
+
+            const StagePointsView = () => {
+                // The API returns an array of completed stages
+                const completedStages = Array.isArray(stagePointsData) ? stagePointsData : [];
+                
+                // Calculate current stage points based on running order
+                const currentStagePoints = () => {
+                    if (!raceData?.vehicles) return [];
+                    
+                    const stagePointsScale = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]; // Points for positions 1-10
+                    const currentStage = raceData.stage?.stage_num || 1;
+                    const lapNumber = raceData.lap_number || 0;
+                    
+                    // Only show if race has started
+                    if (lapNumber === 0) return [];
+                    
+                    const sortedVehicles = [...raceData.vehicles]
+                        .sort((a, b) => (a.running_position || 999) - (b.running_position || 999))
+                        .slice(0, 10); // Top 10
+                    
+                    return sortedVehicles.map((vehicle, index) => ({
+                        position: vehicle.running_position,
+                        vehicle_number: vehicle.vehicle_number,
+                        full_name: vehicle.driver?.full_name,
+                        stage_points: stagePointsScale[index] || 0,
+                        is_eligible: vehicle.driver?.is_in_chase !== false // Assume eligible unless specified
+                    }));
+                };
+                
+                const currentPoints = currentStagePoints();
+                const hasCurrentPoints = currentPoints.length > 0;
+                
+                return (
+                    <div className="space-y-6">
+                        {/* Current Stage (if race is active) */}
+                        {hasCurrentPoints && (
+                            <div className="bg-white rounded-lg shadow overflow-hidden border-2 border-blue-500">
+                                <div className="bg-blue-600 text-white px-4 py-3">
+                                    <h3 className="text-lg font-bold">Stage {raceData?.stage?.stage_num || 1} - Current Projected Points</h3>
+                                    <p className="text-sm text-blue-100">
+                                        If stage ended now • {raceData?.stage?.finish_at_lap - raceData?.lap_number || 0} laps remaining
+                                    </p>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-100">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Pos</th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Driver</th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Car</th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Projected Pts</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {currentPoints.map((result, index) => (
+                                                <tr key={index} className="hover:bg-gray-50">
+                                                    <td className="px-4 py-3 font-bold">{result.position}</td>
+                                                    <td className="px-4 py-3">{result.full_name}</td>
+                                                    <td className="px-4 py-3">#{result.vehicle_number}</td>
+                                                    <td className="px-4 py-3 font-bold text-blue-600">
+                                                        {result.stage_points > 0 ? `+${result.stage_points}` : '--'}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Completed Stages */}
+                        {completedStages.map((stage, stageIndex) => (
+                            <div key={stageIndex} className="bg-white rounded-lg shadow overflow-hidden">
+                                <div className="bg-gray-800 text-white px-4 py-3">
+                                    <h3 className="text-lg font-bold">Stage {stage.stage_number} - Final Results</h3>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-100">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Pos</th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Driver</th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Car</th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase">Points</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {(stage.results || []).slice(0, 10).map((result, index) => (
+                                                <tr key={index} className="hover:bg-gray-50">
+                                                    <td className="px-4 py-3 font-bold">{result.position}</td>
+                                                    <td className="px-4 py-3">{result.full_name}</td>
+                                                    <td className="px-4 py-3">#{result.vehicle_number}</td>
+                                                    <td className="px-4 py-3 font-bold text-green-600">
+                                                        {result.stage_points > 0 ? `+${result.stage_points}` : '--'}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        ))}
+                        
+                        {/* No data message */}
+                        {!hasCurrentPoints && completedStages.length === 0 && (
+                            <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+                                <p className="text-lg font-semibold mb-2">No stage results available yet</p>
+                                <p className="text-sm">Stage points will appear here once the race begins</p>
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-50">
+                    {/* Header - Sticky */}
+                    <nav className="bg-black border-b border-gray-700 sticky-header">
+                        <div className="max-w-7xl mx-auto px-4">
+                            <div className="flex items-center justify-between h-12">
+                                <div className="flex items-center space-x-4">
+                                    <h1 className="text-white text-xl font-bold">🏁 NASCAR Live</h1>
+                                    {autoRefresh && isRaceActive && (
+                                        <span className="flex items-center text-green-400 text-xs">
+                                            <span className="w-2 h-2 bg-green-400 rounded-full mr-1.5 pulse-live"></span>
+                                            Live
+                                        </span>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => setAutoRefresh(!autoRefresh)}
+                                    className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                                        autoRefresh ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-600 hover:bg-gray-700'
+                                    } text-white`}
+                                >
+                                    {autoRefresh ? '● Auto' : '○ Paused'}
+                                </button>
+                            </div>
+                        </div>
+                    </nav>
+
+                    {/* Race Status - Sticky and Compact */}
+                    <div className="bg-white border-b border-gray-200 shadow-sm sticky-header" style={{top: '48px'}}>
+                        <div className="max-w-7xl mx-auto px-4 py-2">
+                            <div className="grid grid-cols-1 md:grid-cols-7 gap-3 items-center text-sm">
+                                <div className="md:col-span-2">
+                                    <h2 className="text-lg font-bold text-gray-900 leading-tight">
+                                        {raceData?.run_name || 'Race Name'}
+                                    </h2>
+                                    <p className="text-xs text-gray-600">{raceData?.track_name || 'Track Name'} • {seriesName}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-500">Lap</p>
+                                    <p className="text-lg font-bold text-gray-900 leading-tight">
+                                        {raceData?.lap_number || 0}/{raceData?.laps_in_race || 0}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-500">To Go</p>
+                                    <p className="text-lg font-bold text-gray-900 leading-tight">
+                                        {raceData?.laps_to_go || 0}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-500">Stage {raceData?.stage?.stage_num || 1}</p>
+                                    <p className="text-lg font-bold text-gray-900 leading-tight">
+                                        {(() => {
+                                            const stageLap = raceData?.stage?.finish_at_lap || 0;
+                                            const currentLap = raceData?.lap_number || 0;
+                                            const lapsToStageEnd = stageLap - currentLap;
+                                            return lapsToStageEnd > 0 ? lapsToStageEnd : 0;
+                                        })()}
+                                    </p>
+                                    <p className="text-xs text-gray-500">to Stage End</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-500">Leaders</p>
+                                    <p className="text-lg font-bold text-gray-900 leading-tight">
+                                        {raceData?.number_of_leaders || 0}
+                                    </p>
+                                </div>
+                                <div className="flex justify-end">
+                                    <div className={`${currentFlag.class} px-4 py-1.5 rounded font-bold shadow text-sm`}>
+                                        {currentFlag.name}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Tabs - Sticky */}
+                    <div className="bg-white border-b border-gray-200 sticky-header" style={{top: '112px'}}>
+                        <div className="max-w-7xl mx-auto px-4">
+                            <div className="flex space-x-8">
+                                <button
+                                    onClick={() => setCurrentView('live-feed')}
+                                    className={`py-2 px-2 font-semibold text-xs transition-colors ${
+                                        currentView === 'live-feed' ? 'tab-active' : 'text-gray-600 hover:text-gray-900'
+                                    }`}
+                                >
+                                    Live Race Feed
+                                </button>
+                                <button
+                                    onClick={() => setCurrentView('live-points')}
+                                    className={`py-2 px-2 font-semibold text-xs transition-colors ${
+                                        currentView === 'live-points' ? 'tab-active' : 'text-gray-600 hover:text-gray-900'
+                                    }`}
+                                >
+                                    Live Points
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="max-w-7xl mx-auto px-4 py-6">
+                        {error ? (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8 text-center">
+                                <div className="text-6xl mb-4">🏁</div>
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">No Live Race Data Available</h3>
+                                <p className="text-gray-600">
+                                    There is currently no active race session. Live data will be available during race weekends.
+                                </p>
+                                <p className="text-sm text-gray-500 mt-4">
+                                    Check back during race day for live timing and scoring!
+                                </p>
+                            </div>
+                        ) : (
+                            <>
+                                {currentView === 'live-feed' && <LiveFeedView />}
+                                {currentView === 'live-points' && <LivePointsView />}
+                            </>
+                        )}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="max-w-7xl mx-auto px-4 py-6 text-center text-gray-500 text-sm">
+                        <p>Data provided by NASCAR • Updates every 3 seconds during live races</p>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<NascarLiveApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>

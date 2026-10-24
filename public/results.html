@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Race Results</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #1a1a1a; color: #fff; margin: 0; padding-bottom: 50px; }
+        header { background: #333; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #e31837; position: sticky; top: 0; z-index: 100;}
+        .back-btn { color: #fff; text-decoration: none; background: #e31837; padding: 8px 16px; border-radius: 4px; font-weight: bold; }
+        .back-btn:hover { background: #c1122b; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
+        th { background-color: #222; color: #aaa; position: sticky; top: 65px; z-index: 50; }
+    </style>
+</head>
+<body>
+    <header>
+        <h2 id="race-title" style="margin: 0;">Loading Results...</h2>
+        <a href="index.html" class="back-btn">← Back to Dashboard</a>
+    </header>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Fin Pos</th>
+                <th>Start Pos</th>
+                <th>Car</th>
+                <th>Driver</th>
+                <th>Laps Comp</th>
+                <th>Laps Led</th>
+                <th>Status</th>
+                <th>Race Pts</th>
+                <th style="text-align: right;">Fantasy Pts</th>
+            </tr>
+        </thead>
+        <tbody id="results-body">
+            <!-- Results injected by results.js -->
+        </tbody>
+    </table>
+
+    <!-- Cache-busting version added here to force Chrome to load the newest JS file -->
+    <script src="results.js?v=4"></script>
+</body>
+</html>

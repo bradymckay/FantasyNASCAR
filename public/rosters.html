@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Rosters</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #1a1a1a; color: #fff; margin: 0; padding-bottom: 50px; }
+        header { background: #333; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #e31837; position: sticky; top: 0; z-index: 100;}
+        .back-btn { color: #fff; text-decoration: none; background: #e31837; padding: 8px 16px; border-radius: 4px; font-weight: bold; }
+        
+        .tab-container { display: flex; background: #222; border-bottom: 2px solid #333; padding: 0 10px; margin-top: 20px;}
+        .tab-btn { background: none; border: none; color: #aaa; padding: 15px 20px; font-size: 1.1em; font-weight: bold; cursor: pointer; border-bottom: 3px solid transparent; }
+        .tab-btn.active { color: #fff; border-bottom: 3px solid #e31837; }
+        .tab-content { display: none; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .tab-content.active { display: block; }
+
+        form { background: #222; padding: 20px; border-radius: 8px; }
+        label { display: block; margin-top: 15px; color: #aaa; font-size: 0.9em; text-transform: uppercase;}
+        input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; background: #333; border: 1px solid #444; color: #fff; border-radius: 4px; box-sizing: border-box; }
+        .tier-header { color: #e31837; margin-top: 25px; margin-bottom: 5px; border-bottom: 1px solid #444; padding-bottom: 5px; font-size: 1.1em; }
+        button[type="submit"] { margin-top: 30px; background: #e31837; color: #fff; border: none; padding: 12px 20px; font-size: 1.1em; font-weight: bold; border-radius: 4px; cursor: pointer; width: 100%; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
+        th { background-color: #222; color: #aaa; }
+    </style>
+</head>
+<body>
+    <header>
+        <h2 style="margin: 0;">League Rosters</h2>
+        <a href="index.html" class="back-btn">← Back to Dashboard</a>
+    </header>
+
+    <div class="tab-container">
+        <button class="tab-btn active" onclick="openTab(event, 'submit-tab')">Submit Roster</button>
+        <button class="tab-btn" onclick="openTab(event, 'view-tab')">View Rosters</button>
+    </div>
+
+    <div id="submit-tab" class="tab-content active">
+        <form id="roster-form">
+            <label>Manager Name</label>
+            <input type="text" id="manager-name" required placeholder="e.g., Brady">
+            
+            <h3 class="tier-header">Tier 1 (Pos 1-4) - Select 1 Driver</h3>
+            <select class="driver-select tier-1" required><option value="">Loading live drivers...</option></select>
+
+            <h3 class="tier-header">Tier 2 (Pos 5-16) - Select 3 Drivers</h3>
+            <select class="driver-select tier-2" required><option value="">Loading live drivers...</option></select>
+            <select class="driver-select tier-2" required style="margin-top:10px;"><option value="">Loading live drivers...</option></select>
+            <select class="driver-select tier-2" required style="margin-top:10px;"><option value="">Loading live drivers...</option></select>
+
+            <h3 class="tier-header">Tier 3 (Pos 17-30) - Select 4 Drivers</h3>
+            <select class="driver-select tier-3" required><option value="">Loading live drivers...</option></select>
+            <select class="driver-select tier-3" required style="margin-top:10px;"><option value="">Loading live drivers...</option></select>
+            <select class="driver-select tier-3" required style="margin-top:10px;"><option value="">Loading live drivers...</option></select>
+            <select class="driver-select tier-3" required style="margin-top:10px;"><option value="">Loading live drivers...</option></select>
+
+            <h3 class="tier-header">Tier 4 (Pos 31+) - Select 2 Drivers</h3>
+            <select class="driver-select tier-4" required><option value="">Loading live drivers...</option></select>
+            <select class="driver-select tier-4" required style="margin-top:10px;"><option value="">Loading live drivers...</option></select>
+
+            <h3 class="tier-header">Race Teams - Select 2 Unique Teams</h3>
+            <select class="team-select" required><option value="">Loading live teams...</option></select>
+            <select class="team-select" required style="margin-top:10px;"><option value="">Loading live teams...</option></select>
+            
+            <button type="submit" id="submit-btn">Submit Roster</button>
+            <div id="form-status" style="margin-top: 15px; text-align: center; font-weight: bold;"></div>
+        </form>
+    </div>
+
+    <div id="view-tab" class="tab-content">
+        <table>
+            <thead>
+                <tr>
+                    <th>Manager</th>
+                    <th>Race ID</th>
+                    <th>Drivers</th>
+                    <th>Teams</th>
+                </tr>
+            </thead>
+            <tbody id="rosters-body">
+                <tr><td colspan="4" style="text-align: center;">Loading rosters...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script src="rosters.js?v=6"></script>
+    <script>
+        function openTab(evt, tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            evt.currentTarget.classList.add('active');
+            if(tabName === 'view-tab') fetchRosters();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy NASCAR Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #1a1a1a; color: #fff; margin: 0; padding-bottom: 50px; }
+        
+        /* HEADER GRID */
+        .dashboard-header { background: #222; padding: 20px; border-bottom: 3px solid #e31837; }
+        .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; max-width: 1200px; margin: 0 auto; text-align: center; }
+        .info-box { background: #333; padding: 10px; border-radius: 6px; }
+        .info-label { font-size: 0.8em; color: #aaa; text-transform: uppercase; margin-bottom: 5px; }
+        .info-value { font-size: 1.2em; font-weight: bold; color: #fff; }
+        
+        /* RACE NOTES BANNER */
+        .race-notes-banner { background: #e31837; color: #fff; padding: 10px 20px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .flag-status { display: inline-block; padding: 4px 8px; background: #fff; color: #000; border-radius: 4px; font-size: 0.9em; margin-right: 15px;}
+        
+        /* TAB NAVIGATION */
+        .tab-container { display: flex; background: #222; border-bottom: 2px solid #333; padding: 0 10px; margin-top: 20px;}
+        .tab-btn { background: none; border: none; color: #aaa; padding: 15px 20px; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: 0.3s; border-bottom: 3px solid transparent; }
+        .tab-btn:hover { color: #fff; }
+        .tab-btn.active { color: #fff; border-bottom: 3px solid #e31837; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* TABLE STYLES */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
+        th { background-color: #222; color: #aaa; position: sticky; top: 0; z-index: 50; }
+        .results-link { color: #e31837; font-weight: bold; text-decoration: none; }
+        .results-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <!-- TOP RACE INFORMATION DASHBOARD -->
+    <div class="dashboard-header">
+        <div class="info-grid">
+            <div class="info-box">
+                <div class="info-label">Run Name</div>
+                <div class="info-value" id="run-name">Loading...</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">Track</div>
+                <div class="info-value" id="track-name">Loading...</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">Fastest Lap</div>
+                <div class="info-value" id="fastest-lap">--</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">Current Lap / Stage</div>
+                <div class="info-value"><span id="lap-count">0</span> (Stage <span id="stage-number">0</span>)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RACE NOTES & FLAGS -->
+    <div class="race-notes-banner">
+        <div>
+            <span class="flag-status" id="flag-state">Flag: --</span>
+            <span id="latest-note">Waiting for live race updates...</span>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <a href="rosters.html" style="text-decoration: none; padding: 5px 12px; background: #fff; color: #e31837; font-weight: bold; border-radius: 4px; display: inline-block;">Manage Rosters</a>
+            <button id="toggle-pause" style="padding: 5px 10px; cursor: pointer; background: #111; color: #fff; border: 1px solid #fff; border-radius: 4px;">Pause Live Feed</button>
+        </div>
+    </div>
+
+    <!-- TAB NAVIGATION -->
+    <div class="tab-container">
+        <button class="tab-btn active" onclick="openTab(event, 'live-tab')">Live Leaderboard</button>
+        <button class="tab-btn" onclick="openTab(event, 'schedule-tab')">2026 Schedule</button>
+    </div>
+
+    <!-- LIVE TELEMETRY TAB -->
+    <div id="live-tab" class="tab-content active">
+        <table>
+            <thead>
+                <tr>
+                    <th>Pos</th>
+                    <th>Start</th>
+                    <th>Car Num</th>
+                    <th>Driver Name</th>
+                    <th>Delta</th>
+                    <th>Laps Led</th>
+                    <th>Best Lap</th>
+                    <th>Team Name</th>
+                    <th style="text-align: right;">Status</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboard-body">
+                <!-- Live data injected by app.js -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- SCHEDULE TAB -->
+    <div id="schedule-tab" class="tab-content">
+        <table>
+            <thead>
+                <tr>
+                    <th>Race ID</th>
+                    <th>Race Name</th>
+                    <th>Track</th>
+                    <th>Date</th>
+                    <th>Results</th>
+                </tr>
+            </thead>
+            <tbody id="schedule-body">
+                <!-- Schedule data injected by app.js -->
+            </tbody>
+        </table>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        function openTab(evt, tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            evt.currentTarget.classList.add('active');
+        }
+    </script>
+</body>
+</html>

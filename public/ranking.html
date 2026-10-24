@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NASCAR Fantasy Leaderboard</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --text-color: #ffffff;
+            --accent-color: #e31837;
+            --table-bg: #1e1e1e;
+            --table-hover: #2c2c2c;
+            --border-color: #333333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: var(--text-color);
+            border-bottom: 3px solid var(--accent-color);
+            padding-bottom: 10px;
+        }
+
+        .leaderboard-container {
+            width: 100%;
+            max-width: 800px;
+            background-color: var(--table-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        thead {
+            background-color: var(--accent-color);
+            color: #ffffff;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            text-transform: uppercase;
+            font-size: 0.9em;
+            letter-spacing: 0.05em;
+        }
+
+        tbody tr:hover {
+            background-color: var(--table-hover);
+        }
+
+        tbody tr:last-of-type td {
+            border-bottom: none;
+        }
+
+        .position {
+            font-weight: bold;
+            text-align: center;
+            width: 10%;
+        }
+
+        .manager {
+            width: 50%;
+        }
+
+        .score, .wins {
+            width: 20%;
+            text-align: right;
+        }
+
+        #loading-message {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            color: #aaaaaa;
+        }
+
+        #error-message {
+            text-align: center;
+            padding: 20px;
+            color: var(--accent-color);
+            display: none;
+        }
+        
+        .hidden {
+            display: none;
+        }
+
+        .rank-1 {
+            color: gold;
+        }
+        .rank-2 {
+            color: silver;
+        }
+        .rank-3 {
+            color: #cd7f32; /* bronze */
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>NASCAR Fantasy Leaderboard</h1>
+
+    <div class="leaderboard-container">
+        <div id="loading-message">Loading Data...</div>
+        <div id="error-message"></div>
+        <table id="leaderboard-table" class="hidden">
+            <thead>
+                <tr>
+                    <th class="position">Rank</th>
+                    <th class="manager">Manager</th>
+                    <th class="score">Points Scored</th>
+                    <th class="wins">Wins</th>
+                </tr>
+            </thead>
+            <tbody id="leaderboard-body">
+                <!-- Data will be populated here by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <script src="ranking.js"></script>
+</body>
+</html>
