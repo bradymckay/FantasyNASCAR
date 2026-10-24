@@ -1,0 +1,380 @@
+/* Base Reset & Page Background */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: #f4f5f6;
+    color: #1f2937;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+}
+
+/* Container Utility */
+.container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* 1. Solid Black (#141414) Top Navbar */
+.top-navbar {
+    background-color: #141414;
+    color: #ffffff;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+.navbar-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+}
+
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.brand-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.navbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.nav-link-btn {
+    color: #d1d5db;
+    text-decoration: none;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 6px;
+    background-color: #262626;
+    border: 1px solid #3a3a3a;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.nav-link-btn:hover {
+    background-color: #333333;
+    color: #ffffff;
+}
+
+.live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #1f8b4c;
+    background: rgba(34, 197, 94, 0.16);
+    color: #4ade80;
+    border: 1px solid rgba(74, 222, 128, 0.4);
+    padding: 4px 12px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.live-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #22c55e;
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulse-dot 2s infinite ease-in-out;
+}
+
+@keyframes pulse-dot {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.45;
+        transform: scale(0.9);
+    }
+}
+
+/* 2. White Telemetry Header */
+.telemetry-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.telemetry-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding-top: 14px;
+    padding-bottom: 14px;
+}
+
+.race-title-block {
+    min-width: 200px;
+    flex: 1 1 auto;
+}
+
+.race-title {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1.25;
+}
+
+.race-subtitle {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
+.telemetry-metrics {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    flex-wrap: wrap;
+}
+
+.metric-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.metric-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    margin-bottom: 2px;
+}
+
+.metric-value {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1.2;
+}
+
+.metric-subtext {
+    font-size: 0.7rem;
+    color: #6b7280;
+    margin-top: 1px;
+}
+
+.telemetry-status {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.status-btn {
+    background-color: #22c55e;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 18px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    transition: background-color 0.15s ease;
+}
+
+.status-btn:hover {
+    background-color: #16a34a;
+}
+
+.status-btn.flag-green {
+    background-color: #22c55e;
+    color: #ffffff;
+}
+
+.status-btn.flag-yellow {
+    background-color: #eab308;
+    color: #111827;
+}
+
+.status-btn.flag-red {
+    background-color: #ef4444;
+    color: #ffffff;
+}
+
+/* 3. Tab Navigation Bar */
+.tab-navbar {
+    background-color: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.tab-list {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 12px 4px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.tab-btn:hover {
+    color: #111827;
+}
+
+.tab-btn.active {
+    color: #007bff;
+    border-bottom-color: #007bff;
+}
+
+/* 4. Main Content & Data Table */
+.main-content {
+    padding-top: 24px;
+    padding-bottom: 48px;
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+.table-card {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+}
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.telemetry-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.telemetry-table thead {
+    background-color: #333333;
+    color: #ffffff;
+}
+
+.telemetry-table th {
+    background-color: #333333;
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 12px 14px;
+    white-space: nowrap;
+    border-bottom: 1px solid #222222;
+}
+
+.telemetry-table td {
+    padding: 12px 14px;
+    font-size: 0.875rem;
+    color: #1f2937;
+    border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap;
+}
+
+.telemetry-table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+.telemetry-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.pos-cell {
+    font-weight: 700;
+    color: #111827;
+}
+
+.car-cell {
+    font-weight: 700;
+    color: #111827;
+}
+
+.driver-cell {
+    font-weight: 600;
+    color: #111827;
+}
+
+.mono-cell {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.8125rem;
+    color: #374151;
+}
+
+.status-running {
+    color: #16a34a;
+    font-weight: 600;
+}
+
+.status-pit {
+    color: #d97706;
+    font-weight: 600;
+}
+
+.status-out {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 36px 20px;
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .telemetry-inner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .telemetry-metrics {
+        width: 100%;
+        justify-content: space-between;
+        gap: 16px;
+    }
+
+    .telemetry-status {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}

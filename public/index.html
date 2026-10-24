@@ -3,126 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fantasy NASCAR Dashboard</title>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #1a1a1a; color: #fff; margin: 0; padding-bottom: 50px; }
-        
-        /* HEADER GRID */
-        .dashboard-header { background: #222; padding: 20px; border-bottom: 3px solid #e31837; }
-        .info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; max-width: 1200px; margin: 0 auto; text-align: center; }
-        .info-box { background: #333; padding: 10px; border-radius: 6px; }
-        .info-label { font-size: 0.8em; color: #aaa; text-transform: uppercase; margin-bottom: 5px; }
-        .info-value { font-size: 1.2em; font-weight: bold; color: #fff; }
-        
-        /* RACE NOTES BANNER */
-        .race-notes-banner { background: #e31837; color: #fff; padding: 10px 20px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-        .flag-status { display: inline-block; padding: 4px 8px; background: #fff; color: #000; border-radius: 4px; font-size: 0.9em; margin-right: 15px;}
-        
-        /* TAB NAVIGATION */
-        .tab-container { display: flex; background: #222; border-bottom: 2px solid #333; padding: 0 10px; margin-top: 20px;}
-        .tab-btn { background: none; border: none; color: #aaa; padding: 15px 20px; font-size: 1.1em; font-weight: bold; cursor: pointer; transition: 0.3s; border-bottom: 3px solid transparent; }
-        .tab-btn:hover { color: #fff; }
-        .tab-btn.active { color: #fff; border-bottom: 3px solid #e31837; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        
-        /* TABLE STYLES */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
-        th { background-color: #222; color: #aaa; position: sticky; top: 0; z-index: 50; }
-        .results-link { color: #e31837; font-weight: bold; text-decoration: none; }
-        .results-link:hover { text-decoration: underline; }
-    </style>
+    <title>NASCAR Live Telemetry Dashboard</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <!-- TOP RACE INFORMATION DASHBOARD -->
-    <div class="dashboard-header">
-        <div class="info-grid">
-            <div class="info-box">
-                <div class="info-label">Run Name</div>
-                <div class="info-value" id="run-name">Loading...</div>
+    <!-- 1. Solid Black (#141414) Top Navbar -->
+    <nav class="top-navbar">
+        <div class="container navbar-inner">
+            <div class="navbar-brand">
+                <a href="index.html" class="brand-title">🏁 NASCAR Live</a>
             </div>
-            <div class="info-box">
-                <div class="info-label">Track</div>
-                <div class="info-value" id="track-name">Loading...</div>
+            <div class="navbar-actions">
+                <span class="live-badge" id="live-badge">
+                    <span class="live-dot"></span>
+                    Live
+                </span>
             </div>
-            <div class="info-box">
-                <div class="info-label">Fastest Lap</div>
-                <div class="info-value" id="fastest-lap">--</div>
+        </div>
+    </nav>
+
+    <!-- 2. White Telemetry Header -->
+    <header class="telemetry-header">
+        <div class="container telemetry-inner">
+            <div class="race-title-block">
+                <h1 class="race-title" id="run-name">NASCAR Cup Series</h1>
+                <p class="race-subtitle"><span id="track-name">Track Name</span> • <span id="series-name">NASCAR Cup Series</span></p>
             </div>
-            <div class="info-box">
-                <div class="info-label">Current Lap / Stage</div>
-                <div class="info-value"><span id="lap-count">0</span> (Stage <span id="stage-number">0</span>)</div>
+
+            <div class="telemetry-metrics">
+                <div class="metric-item">
+                    <span class="metric-label">LAP</span>
+                    <span class="metric-value" id="lap-display"><span id="lap-count">0</span>/<span id="total-laps">0</span></span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">TO GO</span>
+                    <span class="metric-value" id="laps-to-go">0</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label" id="stage-label">STAGE 1</span>
+                    <span class="metric-value" id="stage-laps-remaining">0</span>
+                    <span class="metric-subtext">to Stage End</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">LEADERS</span>
+                    <span class="metric-value" id="leaders-count">0</span>
+                </div>
+            </div>
+
+            <div class="telemetry-status">
+                <button type="button" class="status-btn flag-green" id="flag-state">Green</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 3. Tab Navigation Bar -->
+    <div class="tab-navbar">
+        <div class="container">
+            <div class="tab-list" role="tablist">
+                <button
+                    type="button"
+                    class="tab-btn active"
+                    role="tab"
+                    aria-selected="true"
+                    data-tab="live-race-feed"
+                    onclick="switchTab(event, 'live-race-feed')"
+                >
+                    Live Race Feed
+                </button>
+                <button
+                    type="button"
+                    class="tab-btn"
+                    role="tab"
+                    aria-selected="false"
+                    data-tab="live-points"
+                    onclick="switchTab(event, 'live-points')"
+                >
+                    Live Points
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- RACE NOTES & FLAGS -->
-    <div class="race-notes-banner">
-        <div>
-            <span class="flag-status" id="flag-state">Flag: --</span>
-            <span id="latest-note">Waiting for live race updates...</span>
-        </div>
-        <div style="display: flex; gap: 10px;">
-            <a href="rosters.html" style="text-decoration: none; padding: 5px 12px; background: #fff; color: #e31837; font-weight: bold; border-radius: 4px; display: inline-block;">Manage Rosters</a>
-            <button id="toggle-pause" style="padding: 5px 10px; cursor: pointer; background: #111; color: #fff; border: 1px solid #fff; border-radius: 4px;">Pause Live Feed</button>
-        </div>
-    </div>
+    <!-- 4. Main Content & Dark Charcoal (#333333) Table Header over Light Gray (#f4f5f6) Background -->
+    <main class="container main-content">
+        <!-- Live Race Feed Tab -->
+        <section id="live-race-feed" class="tab-panel active" role="tabpanel">
+            <div class="table-card">
+                <div class="table-responsive">
+                    <table class="telemetry-table">
+                        <thead>
+                            <tr>
+                                <th>POS</th>
+                                <th>CAR</th>
+                                <th>DRIVER</th>
+                                <th>INTERVAL</th>
+                                <th>LAPS</th>
+                                <th>STATUS</th>
+                                <th>PIT</th>
+                                <th>LED</th>
+                                <th>BEST</th>
+                                <th>LAST</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body">
+                            <tr>
+                                <td colspan="10" class="empty-state">Waiting for live race telemetry data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
 
-    <!-- TAB NAVIGATION -->
-    <div class="tab-container">
-        <button class="tab-btn active" onclick="openTab(event, 'live-tab')">Live Leaderboard</button>
-        <button class="tab-btn" onclick="openTab(event, 'schedule-tab')">2026 Schedule</button>
-    </div>
+        <!-- Live Points Tab -->
+        <section id="live-points" class="tab-panel" role="tabpanel">
+            <div class="table-card">
+                <div class="table-responsive">
+                    <table class="telemetry-table">
+                        <thead>
+                            <tr>
+                                <th>POS</th>
+                                <th>CAR</th>
+                                <th>DRIVER</th>
+                                <th>PTS</th>
+                                <th>BEHIND</th>
+                                <th>WINS</th>
+                                <th>TOP 5</th>
+                                <th>TOP 10</th>
+                                <th>STAGE PTS</th>
+                                <th>LAPS LED</th>
+                            </tr>
+                        </thead>
+                        <tbody id="points-body">
+                            <tr>
+                                <td colspan="10" class="empty-state">Waiting for live points data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
 
-    <!-- LIVE TELEMETRY TAB -->
-    <div id="live-tab" class="tab-content active">
-        <table>
-            <thead>
-                <tr>
-                    <th>Pos</th>
-                    <th>Start</th>
-                    <th>Car Num</th>
-                    <th>Driver Name</th>
-                    <th>Delta</th>
-                    <th>Laps Led</th>
-                    <th>Best Lap</th>
-                    <th>Team Name</th>
-                    <th style="text-align: right;">Status</th>
-                </tr>
-            </thead>
-            <tbody id="leaderboard-body">
-                <!-- Live data injected by app.js -->
-            </tbody>
-        </table>
-    </div>
-
-    <!-- SCHEDULE TAB -->
-    <div id="schedule-tab" class="tab-content">
-        <table>
-            <thead>
-                <tr>
-                    <th>Race ID</th>
-                    <th>Race Name</th>
-                    <th>Track</th>
-                    <th>Date</th>
-                    <th>Results</th>
-                </tr>
-            </thead>
-            <tbody id="schedule-body">
-                <!-- Schedule data injected by app.js -->
-            </tbody>
-        </table>
-    </div>
-
-    <script src="app.js"></script>
     <script>
-        function openTab(evt, tabName) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(tabName).classList.add('active');
-            evt.currentTarget.classList.add('active');
+        function switchTab(event, tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-selected', 'false');
+            });
+            document.querySelectorAll('.tab-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+
+            event.currentTarget.classList.add('active');
+            event.currentTarget.setAttribute('aria-selected', 'true');
+            const targetPanel = document.getElementById(tabId);
+            if (targetPanel) {
+                targetPanel.classList.add('active');
+            }
         }
     </script>
 </body>

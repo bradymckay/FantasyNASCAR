@@ -1,89 +1,168 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NASCAR Live Telemetry Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/13.1.0/firebase-app-compat.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/13.1.0/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/13.1.0/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/13.1.0/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/13.1.0/firebase-functions-compat.js"></script>
-    <script defer src="/__/firebase/13.1.0/firebase-messaging-compat.js"></script>
-    <script defer src="/__/firebase/13.1.0/firebase-storage-compat.js"></script>
-    <script defer src="/__/firebase/13.1.0/firebase-analytics-compat.js"></script>
-    <script defer src="/__/firebase/13.1.0/firebase-remote-config-compat.js"></script>
-    <script defer src="/__/firebase/13.1.0/firebase-performance-compat.js"></script>
-    <!-- 
-      initialize the SDK after all desired features are loaded, set useEmulator to false
-      to avoid connecting the SDK to running emulators.
-    -->
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+    <!-- 1. Solid Black (#141414) Top Navbar -->
+    <nav class="top-navbar">
+        <div class="container navbar-inner">
+            <div class="navbar-brand">
+                <a href="index.html" class="brand-title">🏁 NASCAR Live</a>
+            </div>
+            <div class="navbar-actions">
+                <span class="live-badge" id="live-badge">
+                    <span class="live-dot"></span>
+                    Live
+                </span>
+            </div>
+        </div>
+    </nav>
 
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
-      }
-    </style>
-  </head>
-  <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
+    <!-- 2. White Telemetry Header -->
+    <header class="telemetry-header">
+        <div class="container telemetry-inner">
+            <div class="race-title-block">
+                <h1 class="race-title" id="run-name">NASCAR Cup Series</h1>
+                <p class="race-subtitle"><span id="track-name">Track Name</span> • <span id="series-name">NASCAR Cup Series</span></p>
+            </div>
+
+            <div class="telemetry-metrics">
+                <div class="metric-item">
+                    <span class="metric-label">LAP</span>
+                    <span class="metric-value" id="lap-display"><span id="lap-count">0</span>/<span id="total-laps">0</span></span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">TO GO</span>
+                    <span class="metric-value" id="laps-to-go">0</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label" id="stage-label">STAGE 1</span>
+                    <span class="metric-value" id="stage-laps-remaining">0</span>
+                    <span class="metric-subtext">to Stage End</span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">LEADERS</span>
+                    <span class="metric-value" id="leaders-count">0</span>
+                </div>
+            </div>
+
+            <div class="telemetry-status">
+                <button type="button" class="status-btn flag-green" id="flag-state">Green</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 3. Tab Navigation Bar -->
+    <div class="tab-navbar">
+        <div class="container">
+            <div class="tab-list" role="tablist">
+                <button
+                    type="button"
+                    class="tab-btn active"
+                    role="tab"
+                    aria-selected="true"
+                    data-tab="live-race-feed"
+                    onclick="switchTab(event, 'live-race-feed')"
+                >
+                    Live Race Feed
+                </button>
+                <button
+                    type="button"
+                    class="tab-btn"
+                    role="tab"
+                    aria-selected="false"
+                    data-tab="live-points"
+                    onclick="switchTab(event, 'live-points')"
+                >
+                    Live Points
+                </button>
+            </div>
+        </div>
     </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
+
+    <!-- 4. Main Content & Dark Charcoal (#333333) Table Header over Light Gray (#f4f5f6) Background -->
+    <main class="container main-content">
+        <!-- Live Race Feed Tab -->
+        <section id="live-race-feed" class="tab-panel active" role="tabpanel">
+            <div class="table-card">
+                <div class="table-responsive">
+                    <table class="telemetry-table">
+                        <thead>
+                            <tr>
+                                <th>POS</th>
+                                <th>CAR</th>
+                                <th>DRIVER</th>
+                                <th>INTERVAL</th>
+                                <th>LAPS</th>
+                                <th>STATUS</th>
+                                <th>PIT</th>
+                                <th>LED</th>
+                                <th>BEST</th>
+                                <th>LAST</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboard-body">
+                            <tr>
+                                <td colspan="10" class="empty-state">Waiting for live race telemetry data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Live Points Tab -->
+        <section id="live-points" class="tab-panel" role="tabpanel">
+            <div class="table-card">
+                <div class="table-responsive">
+                    <table class="telemetry-table">
+                        <thead>
+                            <tr>
+                                <th>POS</th>
+                                <th>CAR</th>
+                                <th>DRIVER</th>
+                                <th>PTS</th>
+                                <th>BEHIND</th>
+                                <th>WINS</th>
+                                <th>TOP 5</th>
+                                <th>TOP 10</th>
+                                <th>STAGE PTS</th>
+                                <th>LAPS LED</th>
+                            </tr>
+                        </thead>
+                        <tbody id="points-body">
+                            <tr>
+                                <td colspan="10" class="empty-state">Waiting for live points data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
 
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.firestore().doc('/foo/bar').get().then(() => { });
-        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        // firebase.analytics(); // call to activate
-        // firebase.analytics().logEvent('tutorial_completed');
-        // firebase.performance(); // call to activate
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+        function switchTab(event, tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-selected', 'false');
+            });
+            document.querySelectorAll('.tab-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
 
-        try {
-          let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
+            event.currentTarget.classList.add('active');
+            event.currentTarget.setAttribute('aria-selected', 'true');
+            const targetPanel = document.getElementById(tabId);
+            if (targetPanel) {
+                targetPanel.classList.add('active');
+            }
         }
-      });
     </script>
-  </body>
+</body>
 </html>
