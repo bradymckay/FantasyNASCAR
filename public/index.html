@@ -4,21 +4,104 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NASCAR Live Telemetry Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=35">
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 </head>
 <body>
+
+    <!-- Full-Screen Authentication Gate (#authGate) -->
+    <div id="authGate" class="auth-gate-screen" style="display: flex;">
+        <div class="auth-gate-container">
+            <div class="auth-gate-brand">
+                <div class="auth-gate-badge">OFFICIAL FANTASY TELEMETRY PORTAL</div>
+                <h1 class="auth-gate-title">🏁 Fantasy NASCAR League</h1>
+                <p class="auth-gate-subtitle">Sign in or register your team to access rosters, telemetry, and live standings.</p>
+            </div>
+
+            <div id="authCard" class="auth-card auth-modal-card auth-gate-card">
+                <div class="auth-modal-body">
+                    <div class="modal-subtab-buttons auth-tab-buttons" role="tablist">
+                        <button type="button" id="auth-tab-btn-login" class="modal-subtab-btn active" role="tab" aria-selected="true" onclick="switchAuthTab('login')">
+                            Login
+                        </button>
+                        <button type="button" id="auth-tab-btn-signup" class="modal-subtab-btn" role="tab" aria-selected="false" onclick="switchAuthTab('signup')">
+                            Sign Up / Join
+                        </button>
+                    </div>
+
+                    <!-- Dedicated Inline Alert Container (#authAlert) -->
+                    <div id="authAlert" class="auth-error-banner hidden" role="alert"></div>
+
+                    <!-- Login Tab Form -->
+                    <form id="auth-login-form" class="auth-form" onsubmit="handleAuthLoginSubmit(event)">
+                        <div class="form-group">
+                            <label for="auth-login-email" class="auth-label">Email</label>
+                            <input type="email" id="auth-login-email" class="auth-input" required placeholder="you@example.com" autocomplete="email">
+                        </div>
+                        <div class="form-group">
+                            <label for="auth-login-password" class="auth-label">Password</label>
+                            <input type="password" id="auth-login-password" class="auth-input" required placeholder="••••••••" autocomplete="current-password">
+                        </div>
+                        <button type="submit" id="auth-login-submit-btn" class="auth-submit-btn">Log In</button>
+                        <div class="auth-forgot-row">
+                            <a href="#" class="auth-forgot-link" onclick="handleForgotPassword(event)">Forgot Password?</a>
+                        </div>
+                    </form>
+
+                    <!-- Sign Up / Join Tab Form -->
+                    <form id="auth-signup-form" class="auth-form hidden" onsubmit="handleAuthSignupSubmit(event)">
+                        <div class="form-group">
+                            <label for="auth-signup-manager" class="auth-label">Manager / Team Name</label>
+                            <input type="text" id="auth-signup-manager" class="auth-input" required placeholder="e.g., Apex Motorsports" autocomplete="name">
+                        </div>
+                        <div class="form-group">
+                            <label for="auth-signup-email" class="auth-label">Email</label>
+                            <input type="email" id="auth-signup-email" class="auth-input" required placeholder="you@example.com" autocomplete="email">
+                        </div>
+                        <div class="form-group">
+                            <label for="auth-signup-password" class="auth-label">Password (min. 6 characters)</label>
+                            <input type="password" id="auth-signup-password" class="auth-input" required minlength="6" placeholder="••••••••" autocomplete="new-password">
+                        </div>
+                        <div class="form-group">
+                            <label for="auth-signup-confirm-password" class="auth-label">Confirm Password</label>
+                            <input type="password" id="auth-signup-confirm-password" class="auth-input" required minlength="6" placeholder="••••••••" autocomplete="new-password">
+                        </div>
+                        <button type="submit" id="auth-signup-submit-btn" class="auth-submit-btn">Create Team &amp; Enter</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Protected Main Dashboard Container (#mainDashboard) -->
+    <div id="mainDashboard" style="display: none;">
 
     <!-- 1. Solid Black (#141414) Top Navbar -->
     <nav class="top-navbar">
         <div class="container navbar-inner">
             <div class="navbar-brand">
                 <a href="index.html" class="brand-title">🏁 NASCAR Live</a>
+                <span class="series-pill" id="active-series-pill">Cup Series</span>
             </div>
             <div class="navbar-actions">
                 <span class="live-badge" id="live-badge">
                     <span class="live-dot"></span>
                     Live
                 </span>
+                <!-- Auth Status & Controls -->
+                <div id="header-auth-container" class="header-auth-container">
+                    <button type="button" id="header-signin-btn" class="header-auth-btn" onclick="openAuthModal('login')">
+                        Sign In / Join League
+                    </button>
+                    <div id="header-user-info" class="header-user-info hidden">
+                        <span id="header-admin-badge" class="admin-gold-badge hidden">ADMIN</span>
+                        <span id="header-user-label" class="header-user-label"></span>
+                        <button type="button" id="header-logout-btn" class="header-logout-btn" onclick="handleAuthLogout()">
+                            Log Out
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </nav>
@@ -76,10 +159,50 @@
                     class="tab-btn"
                     role="tab"
                     aria-selected="false"
-                    data-tab="live-points"
-                    onclick="switchTab(event, 'live-points')"
+                    data-tab="series-live-standings"
+                    onclick="switchTab(event, 'series-live-standings')"
                 >
-                    Live Points
+                    Series Live Standings
+                </button>
+                <button
+                    type="button"
+                    class="tab-btn"
+                    role="tab"
+                    aria-selected="false"
+                    data-tab="live-race-standings"
+                    onclick="switchTab(event, 'live-race-standings')"
+                >
+                    Live Race Standings
+                </button>
+                <button
+                    type="button"
+                    class="tab-btn"
+                    role="tab"
+                    aria-selected="false"
+                    data-tab="fantasy-standings"
+                    onclick="switchTab(event, 'fantasy-standings')"
+                >
+                    Fantasy Standings
+                </button>
+                <button
+                    type="button"
+                    class="tab-btn"
+                    role="tab"
+                    aria-selected="false"
+                    data-tab="team-rosters"
+                    onclick="switchTab(event, 'team-rosters')"
+                >
+                    Team Rosters / Selections
+                </button>
+                <button
+                    type="button"
+                    class="tab-btn"
+                    role="tab"
+                    aria-selected="false"
+                    data-tab="season-schedule"
+                    onclick="switchTab(event, 'season-schedule')"
+                >
+                    Season Schedule
                 </button>
             </div>
         </div>
@@ -87,7 +210,7 @@
 
     <!-- 4. Main Content & Dark Charcoal (#333333) Table Header over Light Gray (#f4f5f6) Background -->
     <main class="container main-content">
-        <!-- Live Race Feed Tab -->
+        <!-- Tab 1: Live Race Feed (raw telemetry table) -->
         <section id="live-race-feed" class="tab-panel active" role="tabpanel">
             <div class="table-card">
                 <div class="table-responsive">
@@ -116,8 +239,15 @@
             </div>
         </section>
 
-        <!-- Live Points Tab -->
-        <section id="live-points" class="tab-panel" role="tabpanel">
+        <!-- Tab 2: Series Live Standings (official real-time NASCAR series points and core season statistics) -->
+        <section id="series-live-standings" class="tab-panel" role="tabpanel">
+            <div class="section-header-bar">
+                <div>
+                    <h2 class="section-heading">Series Live Standings</h2>
+                    <p class="section-subheading">Official real-time NASCAR series points, points behind leader, and core season statistics (Wins, Top 5, Top 10)</p>
+                </div>
+            </div>
+
             <div class="table-card">
                 <div class="table-responsive">
                     <table class="telemetry-table">
@@ -126,44 +256,546 @@
                                 <th>POS</th>
                                 <th>CAR</th>
                                 <th>DRIVER</th>
-                                <th>PTS</th>
+                                <th>SERIES PTS</th>
                                 <th>BEHIND</th>
                                 <th>WINS</th>
                                 <th>TOP 5</th>
                                 <th>TOP 10</th>
-                                <th>STAGE PTS</th>
-                                <th>LAPS LED</th>
                             </tr>
                         </thead>
-                        <tbody id="points-body">
+                        <tbody id="series-live-standings-body">
                             <tr>
-                                <td colspan="10" class="empty-state">Waiting for live points data...</td>
+                                <td colspan="8" class="empty-state">Fetching official Series Live Standings from NASCAR live points feed...</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </section>
+
+        <!-- Tab 3: Live Race Standings (reflective of the current live race on track) -->
+        <section id="live-race-standings" class="tab-panel" role="tabpanel">
+            <div class="section-header-bar">
+                <div>
+                    <h2 class="section-heading">Live Race Standings</h2>
+                    <p class="section-subheading">Real-time Live Race Results and Projected Overall Season Standings (click any manager row in Live Race Results to expand their individual driver &amp; team live points breakdown)</p>
+                </div>
+            </div>
+
+            <div class="fantasy-standings-split-grid live-standings-split-grid">
+                <!-- Left Panel: Live Race Results -->
+                <div class="table-card">
+                    <div class="standings-panel-header">
+                        <div>
+                            <h3 class="standings-panel-title">Live Race Results</h3>
+                            <p id="live-race-banner" class="standings-panel-subtitle">Real-time live points for the current race in progress</p>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="telemetry-table">
+                            <thead>
+                                <tr>
+                                    <th>POS</th>
+                                    <th>MANAGER</th>
+                                    <th>LIVE RACE PTS</th>
+                                    <th>LIVE GAP</th>
+                                    <th>TOP LIVE SCORER</th>
+                                </tr>
+                            </thead>
+                            <tbody id="live-race-standings-body">
+                                <tr>
+                                    <td colspan="5" class="empty-state">Waiting for active race telemetry to calculate live race results...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Right Panel: Projected Overall Season Standings -->
+                <div class="table-card">
+                    <div class="standings-panel-header">
+                        <div>
+                            <h3 class="standings-panel-title">Projected Overall Season Standings</h3>
+                            <p class="standings-panel-subtitle">Sorted by Projected Rank • Projected Cumulative Points, Gap to Leader &amp; Live Trend</p>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="telemetry-table">
+                            <thead>
+                                <tr>
+                                    <th>RANK</th>
+                                    <th>MANAGER</th>
+                                    <th>PROJ. PTS</th>
+                                    <th>PROJ. GAP</th>
+                                    <th>TREND</th>
+                                </tr>
+                            </thead>
+                            <tbody id="live-projected-standings-body">
+                                <tr>
+                                    <td colspan="5" class="empty-state">Calculating Projected Overall Season Standings...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 4: Fantasy Standings (Latest Completed Race & Overall Season Standings) -->
+        <section id="fantasy-standings" class="tab-panel" role="tabpanel">
+            <div class="section-header-bar">
+                <div>
+                    <h2 class="section-heading">Fantasy Standings</h2>
+                    <p class="section-subheading">Latest Completed Race Results and Official Overall Season Fantasy Standings</p>
+                </div>
+                <div class="race-selector-bar">
+                    <label for="completed-race-select" class="race-selector-label">COMPLETED RACE:</label>
+                    <select id="completed-race-select" class="form-control race-selector-select" onchange="handleCompletedRaceChange(this.value)">
+                        <option value="">Latest Completed Race</option>
+                    </select>
+                    <button type="button" class="view-results-link-btn" onclick="openSelectedFantasyRaceResults()">
+                        View Results →
+                    </button>
+                </div>
+            </div>
+
+            <div class="fantasy-standings-split-grid">
+                <!-- Table A: Latest Completed Race Results -->
+                <div class="table-card">
+                    <div class="standings-panel-header">
+                        <div>
+                            <h3 class="standings-panel-title">Latest Completed Race Results</h3>
+                            <p id="last-race-banner" class="standings-panel-subtitle">Loading latest completed race details...</p>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="telemetry-table">
+                            <thead>
+                                <tr>
+                                    <th>FINISH</th>
+                                    <th>MANAGER</th>
+                                    <th>RACE POINTS</th>
+                                    <th>GAP TO WINNER</th>
+                                </tr>
+                            </thead>
+                            <tbody id="last-race-standings-body">
+                                <tr>
+                                    <td colspan="4" class="empty-state">Loading Latest Completed Race Results...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Table B: Overall Season Fantasy Standings -->
+                <div class="table-card">
+                    <div class="standings-panel-header">
+                        <div>
+                            <h3 class="standings-panel-title">Overall Season Fantasy Standings</h3>
+                            <p class="standings-panel-subtitle">Sorted by Overall Rank • Cumulative Points, Gap to Leader, Wins, Last Race &amp; Trend</p>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="telemetry-table">
+                            <thead>
+                                <tr>
+                                    <th>RANK</th>
+                                    <th>MANAGER</th>
+                                    <th>CUMULATIVE PTS</th>
+                                    <th>GAP TO LEADER</th>
+                                    <th>WINS</th>
+                                    <th>LAST RACE</th>
+                                    <th>PRIOR RANK</th>
+                                    <th>TREND</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fantasy-standings-body">
+                                <tr>
+                                    <td colspan="8" class="empty-state">Loading Overall Season Fantasy Standings...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 5: Team Rosters / Selections (vertical column mapping, tier breakdown, and submission manager) -->
+        <section id="team-rosters" class="tab-panel" role="tabpanel">
+            <div class="section-header-bar">
+                <div>
+                    <h2 class="section-heading">Team Rosters / Selections</h2>
+                    <p class="section-subheading">Mapped from vertical manager columns (e.g., D1:D16): Row 1 Manager Name, Rows 2–11 Drivers (Tier 1: Pos 1–4 [1], Tier 2: Pos 5–16 [3], Tier 3: Pos 17–30 [4], Tier 4: Pos 31+ [2]), and Rows 12–13 Race Teams</p>
+                </div>
+                <button type="button" id="toggle-roster-editor-btn" class="secondary-action-btn" onclick="toggleRosterEditor()">
+                    Submit / Edit Roster
+                </button>
+            </div>
+
+            <!-- Admin Control Bar (Visible only when bradymckay25@gmail.com is logged in) -->
+            <div id="admin-control-bar" class="admin-control-card hidden">
+                <div class="admin-control-header">
+                    <div class="admin-control-title-group">
+                        <span class="admin-gold-badge">ADMIN SUPERUSER</span>
+                        <div>
+                            <h3 class="admin-control-title">League Commissioner Override &amp; Roster Control Bar</h3>
+                            <p class="admin-control-subtitle">Select any manager to edit and save their lineup on their behalf, force standings recalculation, or override race scores.</p>
+                        </div>
+                    </div>
+                    <button type="button" id="admin-force-recalc-btn" class="admin-recalc-btn" onclick="handleForceStandingsRecalc()">
+                        ⚡ Force Standings Recalculation
+                    </button>
+                </div>
+
+                <div class="admin-control-grid">
+                    <!-- Admin Manager Lineup Selector -->
+                    <div class="admin-control-box">
+                        <label for="admin-manager-select" class="admin-control-label">Edit Manager Lineup (On Behalf Of)</label>
+                        <div class="admin-inline-row">
+                            <select id="admin-manager-select" class="form-control" onchange="handleAdminManagerSelect(this.value)">
+                                <option value="">-- Select Manager to Load &amp; Edit Lineup --</option>
+                            </select>
+                            <button type="button" class="secondary-action-btn" onclick="handleAdminLoadSelectedManager()">Load Lineup</button>
+                        </div>
+                    </div>
+
+                    <!-- Admin Manual Score Override -->
+                    <div class="admin-control-box">
+                        <label class="admin-control-label">Manual Race Score Override</label>
+                        <div class="admin-override-row">
+                            <select id="admin-override-manager" class="form-control">
+                                <option value="">-- Select Manager --</option>
+                            </select>
+                            <select id="admin-override-race" class="form-control">
+                                <option value="">-- Select Race --</option>
+                            </select>
+                            <input type="number" id="admin-override-points" class="form-control admin-score-input" placeholder="Points (e.g. 325)" step="1">
+                            <button type="button" id="admin-override-submit-btn" class="primary-submit-btn" onclick="handleAdminScoreOverride()">
+                                Apply Override
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="admin-control-status" class="admin-control-status"></div>
+            </div>
+
+            <!-- Interactive Submit / Edit Roster Builder Panel -->
+            <div id="roster-editor-panel" class="roster-editor-card hidden">
+                <div class="roster-editor-header">
+                    <div>
+                        <h3 class="roster-editor-title">Submit / Edit Season Roster</h3>
+                        <p id="roster-role-banner" class="roster-editor-subtitle">
+                            Rules: Select 10 drivers based on previous year's final standings tiers and 2 unique race teams. You cannot draft a driver whose team is also selected as one of your 2 race teams.
+                        </p>
+                    </div>
+                    <button type="button" class="close-editor-btn" onclick="toggleRosterEditor()">✕ Close</button>
+                </div>
+
+                <form id="roster-form" class="roster-form">
+                    <div class="form-row-top">
+                        <div class="form-group">
+                            <label for="manager-name" id="manager-name-label" class="form-label">Manager Name (Select Existing to Edit or Type New)</label>
+                            <div class="manager-input-group">
+                                <input type="text" id="manager-name" class="form-control" required placeholder="e.g., Apex Motorsports">
+                                <select id="existing-manager-select" class="form-control manager-QuickSelect" onchange="loadManagerIntoForm(this.value)">
+                                    <option value="">-- Load Existing Manager Roster --</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tier-form-grid">
+                        <!-- Tier 1: Pos 1-4 (Select 1) -->
+                        <div class="tier-form-section">
+                            <div class="tier-form-header">
+                                <span>Tier 1 (Prev. Year Standings Pos 1–4)</span>
+                                <span class="tier-badge">Select 1 Driver</span>
+                            </div>
+                            <select class="form-control driver-select tier-1" required><option value="">Loading drivers...</option></select>
+                        </div>
+
+                        <!-- Tier 2: Pos 5-16 (Select 3) -->
+                        <div class="tier-form-section">
+                            <div class="tier-form-header">
+                                <span>Tier 2 (Prev. Year Standings Pos 5–16)</span>
+                                <span class="tier-badge">Select 3 Drivers</span>
+                            </div>
+                            <select class="form-control driver-select tier-2" required><option value="">Loading drivers...</option></select>
+                            <select class="form-control driver-select tier-2" required><option value="">Loading drivers...</option></select>
+                            <select class="form-control driver-select tier-2" required><option value="">Loading drivers...</option></select>
+                        </div>
+
+                        <!-- Tier 3: Pos 17-30 (Select 4) -->
+                        <div class="tier-form-section">
+                            <div class="tier-form-header">
+                                <span>Tier 3 (Prev. Year Standings Pos 17–30)</span>
+                                <span class="tier-badge">Select 4 Drivers</span>
+                            </div>
+                            <select class="form-control driver-select tier-3" required><option value="">Loading drivers...</option></select>
+                            <select class="form-control driver-select tier-3" required><option value="">Loading drivers...</option></select>
+                            <select class="form-control driver-select tier-3" required><option value="">Loading drivers...</option></select>
+                            <select class="form-control driver-select tier-3" required><option value="">Loading drivers...</option></select>
+                        </div>
+
+                        <!-- Tier 4: Pos 31+ (Select 2) -->
+                        <div class="tier-form-section">
+                            <div class="tier-form-header">
+                                <span>Tier 4 (Prev. Year Standings Pos 31+)</span>
+                                <span class="tier-badge">Select 2 Drivers</span>
+                            </div>
+                            <select class="form-control driver-select tier-4" required><option value="">Loading drivers...</option></select>
+                            <select class="form-control driver-select tier-4" required><option value="">Loading drivers...</option></select>
+                        </div>
+
+                        <!-- Race Teams: Select 2 Unique Teams -->
+                        <div class="tier-form-section">
+                            <div class="tier-form-header">
+                                <span>Race Teams (No Overlap with Drafted Drivers' Teams)</span>
+                                <span class="tier-badge">Select 2 Unique Teams</span>
+                            </div>
+                            <select class="form-control team-select" required><option value="">Loading race teams...</option></select>
+                            <select class="form-control team-select" required><option value="">Loading race teams...</option></select>
+                        </div>
+                    </div>
+
+                    <!-- Cumulative Previous Year / Season Stats Preview -->
+                    <div id="cumulative-stats-display" class="cumulative-stats-bar">
+                        <div>Combined Wins: <strong id="stat-wins">0</strong></div>
+                        <div>Combined Top 5s: <strong id="stat-top5">0</strong></div>
+                        <div>Combined Top 10s: <strong id="stat-top10">0</strong></div>
+                        <div>Combined Poles: <strong id="stat-poles">0</strong></div>
+                    </div>
+
+                    <div id="form-status" class="form-status-msg"></div>
+
+                    <div class="form-actions">
+                        <button type="submit" id="submit-btn" class="primary-submit-btn">Submit Roster</button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="team-rosters-container" class="rosters-grid">
+                <!-- Populated dynamically by app.js -->
+            </div>
+
+            <div class="table-card" style="margin-top: 24px;">
+                <div class="table-responsive">
+                    <table class="telemetry-table">
+                        <thead>
+                            <tr>
+                                <th>MANAGER</th>
+                                <th>TIER 1 (ROW 2)</th>
+                                <th>TIER 2 (ROWS 3–5)</th>
+                                <th>TIER 3 (ROWS 6–9)</th>
+                                <th>TIER 4 (ROWS 10–11)</th>
+                                <th>RACE TEAMS (2)</th>
+                                <th>TOTAL POINTS</th>
+                                <th>ACTION</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rosters-table-body">
+                            <tr>
+                                <td colspan="8" class="empty-state">Loading manager rosters and position tiers...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 6: Season Schedule (40-race schedule with status, fantasy winner, and interactive race results links) -->
+        <section id="season-schedule" class="tab-panel" role="tabpanel">
+            <div class="section-header-bar">
+                <div>
+                    <h2 class="section-heading">Season Schedule</h2>
+                    <p class="section-subheading">Full 40-race NASCAR season schedule with completion status, fantasy winners, and official race results breakdown</p>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-responsive">
+                    <table class="telemetry-table">
+                        <thead>
+                            <tr>
+                                <th>RACE #</th>
+                                <th>RACE ID</th>
+                                <th>RACE NAME</th>
+                                <th>TRACK</th>
+                                <th>STATUS</th>
+                                <th>FANTASY WINNER</th>
+                                <th>RESULTS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="season-schedule-body">
+                            <tr>
+                                <td colspan="7" class="empty-state">Loading full 40-race Season Schedule...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Interactive Individual Race Results Viewer Modal -->
+        <div id="race-results-viewer-modal" class="race-results-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="race-results-modal-title" onclick="handleRaceModalBackdropClick(event)">
+            <div class="race-results-modal-card">
+                <div class="race-results-modal-header">
+                    <div class="race-results-header-meta">
+                        <h3 id="race-results-modal-title" class="race-results-modal-title">Race Results</h3>
+                        <p id="race-results-modal-subtitle" class="race-results-modal-subtitle">Select a race to view official Fantasy Manager and Driver/Team results</p>
+                    </div>
+                    <div class="race-results-header-actions">
+                        <span id="race-results-winner-badge" class="race-winner-pill">🏆 Winner TBA</span>
+                        <button type="button" class="close-editor-btn" onclick="closeRaceResultsViewer()">✕ Close</button>
+                    </div>
+                </div>
+
+                <div class="race-results-modal-body">
+                    <div class="fantasy-standings-split-grid" style="grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));">
+                        <!-- Table 1: Fantasy Race Results -->
+                        <div class="table-card">
+                            <div class="standings-panel-header">
+                                <div>
+                                    <h4 class="standings-panel-title">Fantasy Race Results</h4>
+                                    <p class="standings-panel-subtitle">Manager Standings &amp; Points for This Specific Race</p>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="telemetry-table">
+                                    <thead>
+                                        <tr>
+                                            <th>RANK</th>
+                                            <th>MANAGER</th>
+                                            <th>POINTS</th>
+                                            <th>GAP</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="modal-manager-results-body">
+                                        <tr>
+                                            <td colspan="4" class="empty-state">Loading fantasy race results...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Table 2: Overall Season Standings (As of This Race) -->
+                        <div class="table-card">
+                            <div class="standings-panel-header">
+                                <div>
+                                    <h4 class="standings-panel-title">Overall Season Standings (As of This Race)</h4>
+                                    <p class="standings-panel-subtitle">Cumulative Season Points Computed Up to This Race</p>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="telemetry-table">
+                                    <thead>
+                                        <tr>
+                                            <th>RANK</th>
+                                            <th>MANAGER</th>
+                                            <th>CUMULATIVE POINTS</th>
+                                            <th>GAP TO LEADER</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="modal-cumulative-standings-body">
+                                        <tr>
+                                            <td colspan="4" class="empty-state">Loading cumulative standings as of this race...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subtab Toggle Bar: Driver Points vs. Team Points (Car Averages) -->
+                    <div class="modal-subtab-bar" role="tablist" aria-label="Race Results Breakdown Views">
+                        <div>
+                            <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #f4f4f5;">Official Race Scoring Breakdown</span>
+                        </div>
+                        <div class="modal-subtab-buttons">
+                            <button type="button" id="modal-subtab-btn-drivers" class="modal-subtab-btn active" role="tab" aria-selected="true" data-modal-subtab="driver-points" onclick="switchRaceModalSubtab('driver-points', event)">
+                                Driver Points
+                            </button>
+                            <button type="button" id="modal-subtab-btn-teams" class="modal-subtab-btn" role="tab" aria-selected="false" data-modal-subtab="team-points" onclick="switchRaceModalSubtab('team-points', event)">
+                                Team Points (Car Averages)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Subtab 1: Driver Points Table (driverResults) -->
+                    <div id="modal-subtab-driver-points" class="modal-subtab-panel active" role="tabpanel">
+                        <div class="table-card">
+                            <div class="standings-panel-header">
+                                <div>
+                                    <h4 class="standings-panel-title">Driver Points Table — Official NASCAR Race Results</h4>
+                                    <p class="standings-panel-subtitle">Start, Finish, Driver Name, Team, Laps, Laps Led, Fastest Lap, Status, Race Pts, Stage Pts, Subtotal, Bonus Pts &amp; Total Fantasy Points</p>
+                                </div>
+                            </div>
+                            <div class="table-responsive" style="max-height: 540px; overflow-y: auto;">
+                                <table class="telemetry-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="num-col">START</th>
+                                            <th class="num-col">FINISH</th>
+                                            <th>DRIVER NAME</th>
+                                            <th>TEAM</th>
+                                            <th class="num-col">LAPS</th>
+                                            <th class="num-col">LAPS LED</th>
+                                            <th>FASTEST LAP</th>
+                                            <th>STATUS</th>
+                                            <th class="num-col">RACE PTS</th>
+                                            <th class="num-col">STAGE PTS</th>
+                                            <th class="num-col">SUBTOTAL</th>
+                                            <th class="num-col">BONUS PTS</th>
+                                            <th class="num-col highlighted-pts-col">TOTAL FANTASY POINTS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="modal-driver-results-body">
+                                        <tr>
+                                            <td colspan="13" class="empty-state">Loading official NASCAR race results...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Subtab 2: Companion Team Points Table (teamResults) -->
+                    <div id="modal-subtab-team-points" class="modal-subtab-panel" role="tabpanel">
+                        <div class="table-card">
+                            <div class="standings-panel-header">
+                                <div>
+                                    <h4 class="standings-panel-title">Team Points Table — Official Race Team Scoring</h4>
+                                    <p class="standings-panel-subtitle">Sorted by Official Average Fantasy Points Awarded by Each Team's Cars</p>
+                                </div>
+                            </div>
+                            <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+                                <table class="telemetry-table">
+                                    <thead>
+                                        <tr>
+                                            <th>RANK</th>
+                                            <th>TEAM</th>
+                                            <th class="num-col">CARS</th>
+                                            <th class="num-col">TOTAL TEAM PTS</th>
+                                            <th class="num-col highlighted-pts-col">AVERAGE PTS</th>
+                                            <th>DRIVING LINEUP / BREAKDOWN</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="modal-team-results-body">
+                                        <tr>
+                                            <td colspan="6" class="empty-state">Loading official race team points breakdown...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
+    </div>
 
-    <script>
-        function switchTab(event, tabId) {
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-                btn.setAttribute('aria-selected', 'false');
-            });
-            document.querySelectorAll('.tab-panel').forEach(panel => {
-                panel.classList.remove('active');
-            });
-
-            event.currentTarget.classList.add('active');
-            event.currentTarget.setAttribute('aria-selected', 'true');
-            const targetPanel = document.getElementById(tabId);
-            if (targetPanel) {
-                targetPanel.classList.add('active');
-            }
-        }
-    </script>
-    <script src="app.js"></script>
+    <script src="app.js?v=34"></script>
 </body>
 </html>

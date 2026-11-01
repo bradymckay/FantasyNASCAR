@@ -361,6 +361,1218 @@ body {
     font-size: 0.9rem;
 }
 
+/* Series Pill in Top Navbar */
+.series-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background-color: #262626;
+    color: #9ca3af;
+    border: 1px solid #374151;
+}
+
+/* Team Rosters / Selections Tab Styling */
+.section-header-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.section-heading {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.section-subheading {
+    font-size: 0.8125rem;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
+.secondary-action-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px;
+    background-color: #007bff;
+    color: #ffffff;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color 0.15s ease;
+}
+
+.secondary-action-btn:hover {
+    background-color: #0062cc;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Roster Editor Card & Form Styles */
+.roster-editor-card {
+    background-color: #ffffff;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    margin-bottom: 24px;
+    overflow: hidden;
+}
+
+.roster-editor-header {
+    background-color: #333333;
+    color: #ffffff;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.roster-editor-title {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.roster-editor-subtitle {
+    font-size: 0.78rem;
+    color: #d1d5db;
+    margin-top: 2px;
+}
+
+.close-editor-btn {
+    background: #4b5563;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.close-editor-btn:hover {
+    background: #6b7280;
+}
+
+.roster-form {
+    padding: 20px;
+}
+
+.form-row-top {
+    margin-bottom: 18px;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #374151;
+    margin-bottom: 6px;
+}
+
+.manager-input-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 0.875rem;
+    color: #111827;
+    background-color: #f9fafb;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+}
+
+.form-control option:disabled {
+    color: #9ca3af;
+    background-color: #f3f4f6;
+}
+
+.tier-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.tier-form-section {
+    background-color: #f4f5f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.tier-form-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #1f2937;
+    margin-bottom: 4px;
+}
+
+.cumulative-stats-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 12px;
+    background-color: #141414;
+    color: #ffffff;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    margin-bottom: 14px;
+}
+
+.cumulative-stats-bar strong {
+    color: #4ade80;
+    margin-left: 4px;
+}
+
+.form-status-msg {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 12px;
+    min-height: 20px;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.primary-submit-btn {
+    background-color: #22c55e;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 22px;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.primary-submit-btn:hover {
+    background-color: #16a34a;
+}
+
+.primary-submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.edit-roster-inline-btn {
+    background-color: #f3f4f6;
+    color: #007bff;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.edit-roster-inline-btn:hover {
+    background-color: #e5e7eb;
+}
+
+#team-rosters-container,
+.rosters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 20px;
+}
+
+.roster-card {
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.roster-card-header {
+    background-color: #333333;
+    color: #ffffff;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.roster-manager-name {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.roster-live-score {
+    background-color: #007bff;
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 9999px;
+}
+
+.roster-card-body {
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.tier-group {
+    border-bottom: 1px solid #f3f4f6;
+    padding-bottom: 10px;
+}
+
+.tier-group:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.tier-group-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6b7280;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.tier-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    background-color: #eef2ff;
+    color: #1d4ed8;
+}
+
+.driver-pill-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.driver-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 4px 9px;
+    border-radius: 6px;
+    background-color: #f4f5f6;
+    border: 1px solid #e5e7eb;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.driver-pill-pos {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #007bff;
+}
+
+.team-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background-color: #eff6ff;
+    border: 1px solid #bfdbfe;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #1e40af;
+}
+
+.pill-pts {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #007bff;
+    background-color: rgba(0, 123, 255, 0.1);
+    padding: 1px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+/* Fantasy Standings & Live Race Standings Split Layout, Race Selector & Trend Badges */
+.fantasy-standings-split-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr);
+    gap: 20px;
+    align-items: start;
+}
+
+.live-standings-split-grid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+}
+
+.standings-panel-header {
+    background-color: #1f2937;
+    color: #ffffff;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid #374151;
+}
+
+.standings-panel-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.01em;
+}
+
+.standings-panel-subtitle {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-top: 2px;
+}
+
+.race-selector-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.race-selector-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #374151;
+    white-space: nowrap;
+}
+
+.race-selector-select {
+    min-width: 280px;
+    padding: 7px 12px;
+    font-size: 0.84rem;
+    font-weight: 600;
+}
+
+.trend-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.trend-up {
+    background-color: #dcfce7;
+    color: #15803d;
+}
+
+.trend-down {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
+.trend-flat {
+    background-color: #f3f4f6;
+    color: #4b5563;
+}
+
+/* Live Race Standings Expandable Inline Drawer */
+.live-manager-row {
+    cursor: pointer;
+    transition: background-color 0.12s ease;
+}
+
+.live-manager-row:hover {
+    background-color: #f3f4f6 !important;
+}
+
+.live-expand-icon {
+    display: inline-block;
+    font-size: 0.7rem;
+    color: #6b7280;
+    margin-right: 6px;
+    transition: transform 0.15s ease;
+}
+
+.live-manager-row.expanded .live-expand-icon {
+    transform: rotate(90deg);
+    color: #007bff;
+}
+
+.live-drawer-row td {
+    background-color: #f8fafc;
+    padding: 12px 18px !important;
+    white-space: normal !important;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.live-drawer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(195px, 1fr));
+    gap: 8px;
+}
+
+.live-drawer-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 10px;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 0.78rem;
+}
+
+.live-drawer-chip.team-chip {
+    background-color: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+.live-drawer-name {
+    font-weight: 600;
+    color: #1f2937;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.live-drawer-pts {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-weight: 700;
+    color: #007bff;
+    white-space: nowrap;
+}
+
+/* Season Schedule Badges & View Race Results Button */
+.schedule-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.schedule-status-completed {
+    background-color: #dcfce7;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+.schedule-status-upcoming {
+    background-color: #f3f4f6;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+}
+
+.view-results-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    background-color: #eff6ff;
+    color: #007bff;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.view-results-link-btn:hover {
+    background-color: #007bff;
+    color: #ffffff;
+    border-color: #007bff;
+}
+
+/* Individual Race Results Viewer Modal (Dark Theme: #18181b card backgrounds, #27272a borders, #e31837 NASCAR red accents) */
+.race-results-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    background-color: rgba(9, 9, 11, 0.82);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    overflow-y: auto;
+}
+
+.race-results-modal-card {
+    width: 100%;
+    max-width: 1400px;
+    max-height: 92vh;
+    background-color: #18181b;
+    color: #f4f4f5;
+    border-radius: 12px;
+    box-shadow: 0 24px 54px rgba(0, 0, 0, 0.65);
+    border: 1px solid #27272a;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.race-results-modal-header {
+    background-color: #121215;
+    color: #ffffff;
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    border-bottom: 2px solid #e31837;
+}
+
+.race-results-modal-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.race-results-modal-subtitle {
+    font-size: 0.8rem;
+    color: #a1a1aa;
+    margin-top: 2px;
+}
+
+.race-results-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.race-winner-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 9999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    background-color: #14532d;
+    color: #4ade80;
+    border: 1px solid #22c55e;
+    white-space: nowrap;
+}
+
+.race-results-modal-body {
+    padding: 20px 22px;
+    overflow-y: auto;
+    background-color: #121215;
+}
+
+.race-results-modal-card .table-card {
+    background-color: #18181b;
+    border: 1px solid #27272a;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.race-results-modal-card .standings-panel-header {
+    background-color: #18181b;
+    border-bottom: 1px solid #27272a;
+}
+
+.race-results-modal-card .telemetry-table thead {
+    background-color: #1f1f23;
+    border-bottom: 1px solid #27272a;
+}
+
+.race-results-modal-card .telemetry-table th {
+    color: #a1a1aa;
+    border-bottom: 1px solid #27272a;
+}
+
+.race-results-modal-card .telemetry-table td {
+    color: #e4e4e7;
+    border-bottom: 1px solid #27272a;
+}
+
+.race-results-modal-card .telemetry-table tbody tr:nth-child(odd) {
+    background-color: #18181b;
+}
+
+.race-results-modal-card .telemetry-table tbody tr:nth-child(even) {
+    background-color: #1d1d21;
+}
+
+.race-results-modal-card .telemetry-table tbody tr:hover {
+    background-color: #27272a;
+}
+
+.race-results-modal-card .pos-cell,
+.race-results-modal-card .driver-cell {
+    color: #ffffff;
+}
+
+.race-results-modal-card .mono-cell {
+    color: #d4d4d8;
+}
+
+.race-results-modal-card .empty-state {
+    color: #a1a1aa;
+}
+
+/* Modal Subtabs ("Driver Points" & "Team Points (Car Averages)") */
+.modal-subtab-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 22px;
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    background-color: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+}
+
+.modal-subtab-buttons {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #121215;
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid #27272a;
+}
+
+.modal-subtab-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background-color: transparent;
+    color: #a1a1aa;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.modal-subtab-btn:hover {
+    color: #ffffff;
+    background-color: #27272a;
+}
+
+.modal-subtab-btn.active {
+    background-color: #e31837;
+    color: #ffffff;
+    border-color: #e31837;
+    box-shadow: 0 2px 8px rgba(227, 24, 55, 0.35);
+}
+
+.modal-subtab-panel {
+    display: none;
+}
+
+.modal-subtab-panel.active {
+    display: block;
+}
+
+/* Highlighted Scoring Columns (TOTAL FANTASY POINTS & AVERAGE PTS) */
+.telemetry-table th.highlighted-pts-col {
+    color: #ff4d67 !important;
+    background-color: rgba(227, 24, 55, 0.14);
+    border-left: 1px solid rgba(227, 24, 55, 0.3);
+}
+
+.telemetry-table td.highlighted-pts-col {
+    color: #ff4d67 !important;
+    font-weight: 800;
+    background-color: rgba(227, 24, 55, 0.1);
+    border-left: 1px solid rgba(227, 24, 55, 0.25);
+}
+
+/* Dark-themed driver lineup pills inside the modal Team Points table */
+.race-results-modal-card .driver-pill {
+    background-color: #27272a;
+    border-color: #3f3f46;
+    color: #f4f4f5;
+}
+
+.race-results-modal-card .pill-pts {
+    color: #ff6b81;
+    background-color: rgba(227, 24, 55, 0.18);
+}
+
+.telemetry-table th.num-col,
+.telemetry-table td.num-col {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.driver-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 9px;
+    border-radius: 9999px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.driver-status-running {
+    background-color: rgba(20, 83, 45, 0.65);
+    color: #4ade80;
+    border: 1px solid #22c55e;
+}
+
+.driver-status-dnf {
+    background-color: rgba(127, 29, 29, 0.55);
+    color: #f87171;
+    border: 1px solid #ef4444;
+}
+
+/* Header Auth UI & Gold Admin Badge */
+.navbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-auth-container {
+    display: flex;
+    align-items: center;
+}
+
+.header-auth-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid #e31837;
+    background-color: #e31837;
+    color: #ffffff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+    white-space: nowrap;
+}
+
+.header-auth-btn:hover {
+    background-color: #c4122d;
+}
+
+.header-user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: #1f1f23;
+    border: 1px solid #27272a;
+    padding: 4px 10px;
+    border-radius: 8px;
+}
+
+.admin-gold-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #111827;
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    box-shadow: 0 1px 4px rgba(245, 158, 11, 0.4);
+    white-space: nowrap;
+}
+
+.header-user-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #f4f4f5;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.header-logout-btn {
+    padding: 4px 10px;
+    border-radius: 5px;
+    border: 1px solid #3f3f46;
+    background-color: #27272a;
+    color: #e4e4e7;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.header-logout-btn:hover {
+    background-color: #e31837;
+    border-color: #e31837;
+    color: #ffffff;
+}
+
+/* Full-Screen Auth Gate (#authGate) & Auth Card */
+#authGate,
+.auth-gate-screen {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #0e1117;
+    color: #f0f2f5;
+    padding: 24px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.auth-gate-container {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.auth-gate-brand {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.auth-gate-badge {
+    color: #8b949e;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+.auth-gate-title {
+    color: #ffffff;
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+}
+
+.auth-gate-subtitle {
+    color: #a0aec0;
+    font-size: 0.95rem;
+    margin-bottom: 28px;
+    max-width: 420px;
+    line-height: 1.45;
+}
+
+.auth-card,
+#authCard,
+.auth-gate-card {
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+    text-align: left;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+    padding: 24px;
+}
+
+.auth-card .auth-modal-body,
+#authCard .auth-modal-body {
+    padding: 0;
+    background: transparent;
+}
+
+.auth-forgot-row {
+    text-align: center;
+    margin-top: 6px;
+}
+
+.auth-forgot-link {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #58a6ff;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.auth-forgot-link:hover {
+    color: #79c0ff;
+    text-decoration: underline;
+}
+
+.auth-alert-success {
+    background-color: rgba(20, 83, 45, 0.4) !important;
+    border-color: #22c55e !important;
+    color: #4ade80 !important;
+}
+
+.auth-modal-card {
+    width: 100%;
+    max-width: 440px;
+    background-color: #18181b;
+    color: #f4f4f5;
+    border-radius: 12px;
+    box-shadow: 0 24px 54px rgba(0, 0, 0, 0.75);
+    border: 1px solid #27272a;
+    overflow: hidden;
+}
+
+.auth-modal-body {
+    padding: 22px;
+    background-color: #18181b;
+}
+
+.auth-tab-buttons {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin-bottom: 18px;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.auth-label {
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #a1a1aa;
+}
+
+.auth-input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid #27272a;
+    background-color: #121215;
+    color: #ffffff;
+    font-size: 0.9rem;
+    transition: border-color 0.15s ease;
+}
+
+.auth-input:focus {
+    outline: none;
+    border-color: #e31837;
+}
+
+.auth-submit-btn {
+    margin-top: 6px;
+    width: 100%;
+    padding: 11px 16px;
+    border-radius: 6px;
+    border: 1px solid #e31837;
+    background-color: #e31837;
+    color: #ffffff;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.auth-submit-btn:hover {
+    background-color: #c4122d;
+}
+
+.auth-submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.auth-error-banner {
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    border-radius: 6px;
+    background-color: rgba(227, 24, 55, 0.15);
+    border: 1px solid #e31837;
+    color: #fca5a5;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* Admin Control Bar (#admin-control-bar) */
+.admin-control-card {
+    background-color: #18181b;
+    color: #f4f4f5;
+    border: 1px solid #f59e0b;
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 22px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.admin-control-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #27272a;
+    margin-bottom: 16px;
+}
+
+.admin-control-title-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.admin-control-title {
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.admin-control-subtitle {
+    font-size: 0.78rem;
+    color: #a1a1aa;
+    margin-top: 2px;
+}
+
+.admin-recalc-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: 1px solid #f59e0b;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #111827;
+    font-size: 0.8rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+    white-space: nowrap;
+}
+
+.admin-recalc-btn:hover {
+    filter: brightness(1.08);
+}
+
+.admin-control-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+.admin-control-box {
+    background-color: #121215;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 12px 14px;
+}
+
+.admin-control-label {
+    display: block;
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #fbbf24;
+    margin-bottom: 8px;
+}
+
+.admin-inline-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-override-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 110px auto;
+    gap: 8px;
+    align-items: center;
+}
+
+.admin-control-card .form-control {
+    background-color: #18181b;
+    border-color: #3f3f46;
+    color: #f4f4f5;
+}
+
+.admin-control-status {
+    margin-top: 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .admin-override-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 1024px) {
+    .fantasy-standings-split-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 768px) {
     .telemetry-inner {
         flex-direction: column;
