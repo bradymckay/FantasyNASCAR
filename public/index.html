@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NASCAR Live Telemetry Dashboard</title>
-    <link rel="stylesheet" href="style.css?v=35">
+    <link rel="stylesheet" href="style.css?v=41">
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 </head>
@@ -139,6 +139,76 @@
             </div>
         </div>
     </header>
+
+    <!-- 2.5 Next Race Landing Hero & Countdown Hub -->
+    <div class="container" style="padding-top: 20px;">
+        <section id="nextRaceHero" class="next-race-hero">
+            <div class="hero-header">
+                <div class="hero-badge-row">
+                    <span class="series-tag">NASCAR CUP SERIES</span>
+                    <span id="racePlayoffBadge" class="chase-tag">THE CHASE</span>
+                    <span id="liveStatusBadge" class="status-tag">UPCOMING</span>
+                    <!-- Banner Quick Link Button -->
+                    <a id="heroActionBtn" class="hero-cta-btn lineup-cta" href="javascript:void(0)" onclick="openStartingLineupModal(5632)">
+                        📋 View Starting Lineup
+                    </a>
+                </div>
+                <h1 id="heroRaceName" class="hero-race-title">Loading Next Race...</h1>
+                <p id="heroTrackDetails" class="hero-track-info"></p>
+            </div>
+
+            <div class="hero-grid">
+                <!-- Countdown Card -->
+                <div class="hero-card countdown-card">
+                    <div class="card-label">TIME UNTIL GREEN FLAG</div>
+                    <div class="countdown-timer">
+                        <div class="time-block"><span id="cdDays">00</span><label>DAYS</label></div>
+                        <div class="time-sep">:</div>
+                        <div class="time-block"><span id="cdHours">00</span><label>HOURS</label></div>
+                        <div class="time-sep">:</div>
+                        <div class="time-block"><span id="cdMins">00</span><label>MINS</label></div>
+                        <div class="time-sep">:</div>
+                        <div class="time-block"><span id="cdSecs">00</span><label>SECS</label></div>
+                    </div>
+                    <div id="countdownStatus" class="countdown-subtext"></div>
+                </div>
+
+                <!-- Race Times (Local vs Track) -->
+                <div class="hero-card times-card">
+                    <div class="card-label">RACE START TIMES</div>
+                    <div class="time-row">
+                        <div class="time-meta">
+                            <span class="time-title">Your Local Time</span>
+                            <span id="userTimezoneLabel" class="time-tz-badge">PST</span>
+                        </div>
+                        <div id="userLocalTime" class="time-value">--:-- --</div>
+                    </div>
+                    <div class="time-divider"></div>
+                    <div class="time-row">
+                        <div class="time-meta">
+                            <span class="time-title">Track Local Time</span>
+                            <span id="trackTimezoneLabel" class="time-tz-badge">EST</span>
+                        </div>
+                        <div id="trackLocalTime" class="time-value">--:-- --</div>
+                    </div>
+                </div>
+
+                <!-- Official Broadcast & Stage Details -->
+                <div class="hero-card broadcast-card">
+                    <div class="card-label">OFFICIAL BROADCAST &amp; STAGES</div>
+                    <div class="broadcast-badges">
+                        <div class="b-badge tv"><span class="b-type">TV</span><span id="bTv" class="b-name">NBC</span></div>
+                        <div class="b-badge radio"><span class="b-type">RADIO</span><span id="bRadio" class="b-name">MRN</span></div>
+                        <div class="b-badge sxm"><span class="b-type">SIRIUSXM</span><span id="bSxm" class="b-name">CH 90</span></div>
+                    </div>
+                    <div class="stage-info">
+                        <div class="stage-item"><span>Distance:</span> <strong id="heroDistance">500 Laps (263 Mi)</strong></div>
+                        <div class="stage-item"><span>Stages:</span> <strong id="heroStages">130 / 130 / 240</strong></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
 
     <!-- 3. Tab Navigation Bar -->
     <div class="tab-navbar">
@@ -604,7 +674,7 @@
         </section>
 
         <!-- Tab 6: Season Schedule (40-race schedule with status, fantasy winner, and interactive race results links) -->
-        <section id="season-schedule" class="tab-panel" role="tabpanel">
+        <section id="season-schedule" class="tab-panel schedule-panel" role="tabpanel">
             <div class="section-header-bar">
                 <div>
                     <h2 class="section-heading">Season Schedule</h2>
@@ -612,13 +682,13 @@
                 </div>
             </div>
 
-            <div class="table-card">
-                <div class="table-responsive">
-                    <table class="telemetry-table">
+            <div class="table-card schedule-card table-wrapper">
+                <div class="table-responsive schedule-table-container">
+                    <table id="scheduleTable" class="telemetry-table schedule-table">
                         <thead>
                             <tr>
                                 <th>RACE #</th>
-                                <th>RACE ID</th>
+                                <th>DATE / TIME</th>
                                 <th>RACE NAME</th>
                                 <th>TRACK</th>
                                 <th>STATUS</th>
@@ -635,6 +705,47 @@
                 </div>
             </div>
         </section>
+
+        <!-- Starting Lineup Modal -->
+        <div id="lineupModal" class="modal-backdrop" style="display: none;" onclick="handleModalBackdropClick(event, 'lineupModal')">
+            <div class="modal-dialog lineup-modal-dialog" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <div class="modal-title-group">
+                        <span class="modal-badge-series">NASCAR CUP SERIES</span>
+                        <h3 class="modal-title" id="lineupModalTitle">Official Starting Lineup</h3>
+                        <span id="lineupModalSub" class="modal-subtitle">Xfinity 500 • Martinsville Speedway</span>
+                    </div>
+                    <button class="modal-close-btn" onclick="closeLineupModal()" aria-label="Close modal">✕</button>
+                </div>
+
+                <div class="modal-body p-0">
+                    <div class="lineup-table-wrapper">
+                        <table class="lineup-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 8%; text-align: center;">POS</th>
+                                    <th style="width: 10%; text-align: center;">CAR #</th>
+                                    <th style="width: 32%;">DRIVER</th>
+                                    <th style="width: 26%;">TEAM &amp; CAR</th>
+                                    <th style="width: 12%; text-align: right;">BEST LAP</th>
+                                    <th style="width: 12%; text-align: right;">DELTA</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lineupModalTableBody">
+                                <tr>
+                                    <td colspan="6" style="text-align: center; color: #8b949e; padding: 30px;">Loading official starting grid...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <span id="lineupModalMeta" class="modal-meta-text">Busch Pole Qualifying</span>
+                    <button class="btn-secondary" onclick="closeLineupModal()">Close</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Interactive Individual Race Results Viewer Modal -->
         <div id="race-results-viewer-modal" class="race-results-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="race-results-modal-title" onclick="handleRaceModalBackdropClick(event)">
@@ -796,6 +907,6 @@
     </main>
     </div>
 
-    <script src="app.js?v=34"></script>
+    <script src="app.js?v=41"></script>
 </body>
 </html>

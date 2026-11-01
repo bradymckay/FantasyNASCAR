@@ -15,7 +15,7 @@ body {
 
 /* Container Utility */
 .container {
-    max-width: 1280px;
+    max-width: 1440px;
     margin: 0 auto;
     padding: 0 20px;
 }
@@ -894,7 +894,693 @@ body {
     white-space: nowrap;
 }
 
-/* Season Schedule Badges & View Race Results Button */
+/* Season Schedule Container, Column Widths, Badges & View Race Results Button */
+#seasonSchedule,
+#season-schedule,
+.schedule-card,
+.table-wrapper {
+    width: 100% !important;
+    max-width: 1440px !important; /* Expand beyond 960px/1100px */
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.schedule-table-container {
+    width: 100% !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+}
+
+#scheduleTable,
+.schedule-table {
+    width: 100% !important;
+    min-width: 980px; /* Prevents columns from compressing or truncating */
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+#scheduleTable th:nth-child(1), #scheduleTable td:nth-child(1),
+.schedule-table th:nth-child(1), .schedule-table td:nth-child(1) {
+    width: 6%;
+    text-align: center;
+}
+
+#scheduleTable th:nth-child(2), #scheduleTable td:nth-child(2),
+.schedule-table th:nth-child(2), .schedule-table td:nth-child(2) {
+    width: 17%;
+    white-space: nowrap;
+}
+
+#scheduleTable th:nth-child(3), #scheduleTable td:nth-child(3),
+.schedule-table th:nth-child(3), .schedule-table td:nth-child(3) {
+    width: 22%;
+    font-weight: 600;
+}
+
+#scheduleTable th:nth-child(4), #scheduleTable td:nth-child(4),
+.schedule-table th:nth-child(4), .schedule-table td:nth-child(4) {
+    width: 18%;
+}
+
+#scheduleTable th:nth-child(5), #scheduleTable td:nth-child(5),
+.schedule-table th:nth-child(5), .schedule-table td:nth-child(5) {
+    width: 11%;
+    text-align: center;
+}
+
+#scheduleTable th:nth-child(6), #scheduleTable td:nth-child(6),
+.schedule-table th:nth-child(6), .schedule-table td:nth-child(6) {
+    width: 14%;
+}
+
+#scheduleTable th:nth-child(7), #scheduleTable td:nth-child(7),
+.schedule-table th:nth-child(7), .schedule-table td:nth-child(7) {
+    width: 12%;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Next Race Landing Hero & Countdown Hub (#nextRaceHero) */
+.next-race-hero {
+    background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
+    border: 1px solid #30363d;
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 24px;
+    color: #f0f6fc;
+}
+
+.hero-badge-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.series-tag {
+    background: #e10600;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+}
+
+.playoff-tag {
+    background: #21262d;
+    border: 1px solid #ffab00;
+    color: #ffab00;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+.chase-tag {
+    background: linear-gradient(135deg, #b8860b 0%, #ffd700 100%);
+    color: #000000;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.75px;
+    padding: 3px 9px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.status-tag {
+    background: rgba(88, 166, 255, 0.14);
+    border: 1px solid #58a6ff;
+    color: #58a6ff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+.hero-race-title {
+    font-size: 1.85rem;
+    font-weight: 800;
+    margin: 0 0 4px 0;
+    color: #ffffff;
+}
+
+.hero-track-info {
+    font-size: 0.95rem;
+    color: #8b949e;
+    margin: 0 0 20px 0;
+}
+
+.hero-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.hero-card {
+    background: #0d1117;
+    border: 1px solid #21262d;
+    border-radius: 10px;
+    padding: 16px;
+}
+
+.card-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #8b949e;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+}
+
+.countdown-timer {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+}
+
+.time-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.time-block span {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #58a6ff;
+    font-variant-numeric: tabular-nums;
+}
+
+.time-block label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #8b949e;
+}
+
+.time-sep {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #30363d;
+    margin-top: -12px;
+}
+
+.countdown-subtext {
+    font-size: 0.75rem;
+    text-align: center;
+    margin-top: 10px;
+    color: #8b949e;
+}
+
+.time-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.time-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.time-title {
+    font-size: 0.8rem;
+    color: #c9d1d9;
+}
+
+.time-tz-badge {
+    font-size: 0.65rem;
+    color: #8b949e;
+}
+
+.time-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #f0f6fc;
+}
+
+.time-divider {
+    height: 1px;
+    background: #21262d;
+    margin: 10px 0;
+}
+
+.broadcast-badges {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.b-badge {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 4px;
+    border-radius: 6px;
+    background: #161b22;
+    border: 1px solid #30363d;
+}
+
+.b-type {
+    font-size: 0.6rem;
+    color: #8b949e;
+    font-weight: 700;
+}
+
+.b-name {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #f0f6fc;
+}
+
+.stage-info {
+    font-size: 0.75rem;
+    color: #8b949e;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stage-info strong {
+    color: #c9d1d9;
+}
+
+/* Official Starting Lineup Card (#startingLineupContainer) */
+.starting-lineup-card {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-top: 20px;
+    color: #f0f6fc;
+}
+
+.lineup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #21262d;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+}
+
+.lineup-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.lineup-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0;
+    color: #ffffff;
+}
+
+.lineup-session-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #58a6ff;
+    background: rgba(56, 139, 253, 0.15);
+    border: 1px solid rgba(56, 139, 253, 0.4);
+    border-radius: 4px;
+    padding: 2px 7px;
+}
+
+.lineup-meta {
+    font-size: 0.75rem;
+    color: #8b949e;
+    font-weight: 600;
+}
+
+.lineup-table-wrapper {
+    max-height: 520px;
+    overflow-y: auto;
+    overflow-x: auto;
+}
+
+.lineup-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.lineup-table th {
+    position: sticky;
+    top: 0;
+    background: #161b22;
+    color: #8b949e;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    padding: 8px 12px;
+    border-bottom: 1px solid #30363d;
+}
+
+.lineup-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid #1f242c;
+    vertical-align: middle;
+}
+
+.lineup-table tr:hover {
+    background: rgba(110, 118, 129, 0.08);
+}
+
+.grid-pos {
+    font-weight: 800;
+    text-align: center;
+    color: #c9d1d9;
+}
+
+.grid-car {
+    text-align: center;
+}
+
+.car-badge {
+    display: inline-block;
+    min-width: 28px;
+    font-weight: 900;
+    font-size: 0.85rem;
+    background: #21262d;
+    color: #f0f6fc;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    padding: 2px 5px;
+}
+
+.grid-driver {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+.driver-name {
+    color: #ffffff;
+}
+
+.grid-team {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: #c9d1d9;
+}
+
+.team-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mfg-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+    color: #8b949e;
+    background: #161b22;
+    border: 1px solid #21262d;
+}
+
+.mfg-toyota {
+    background: rgba(235, 10, 30, 0.15);
+    color: #ff6b6b;
+    border: 1px solid rgba(235, 10, 30, 0.4);
+}
+
+.mfg-ford {
+    background: rgba(0, 114, 206, 0.15);
+    color: #70baff;
+    border: 1px solid rgba(0, 114, 206, 0.4);
+}
+
+.mfg-chevy {
+    background: rgba(218, 165, 32, 0.15);
+    color: #ffd700;
+    border: 1px solid rgba(218, 165, 32, 0.4);
+}
+
+.grid-time,
+.grid-delta {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: #c9d1d9;
+}
+
+.grid-delta {
+    font-weight: 600;
+    color: #8b949e;
+}
+
+.pole-row {
+    background: rgba(255, 215, 0, 0.05);
+}
+
+.pole-label {
+    color: #ffd700;
+    font-weight: 900;
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+}
+
+/* Schedule Table Pill Buttons & Hero Banner CTA Link */
+.pill-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 5px 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 9999px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+/* 1. View Results (Standard Blue/Gray) */
+.pill-results {
+    background: rgba(56, 139, 253, 0.15);
+    color: #58a6ff;
+    border-color: rgba(56, 139, 253, 0.4);
+}
+.pill-results:hover {
+    background: #1f6feb;
+    color: #ffffff;
+}
+
+/* 2. View Lineup (Distinct Vibrant Purple/Indigo Pill) */
+.pill-lineup {
+    background: rgba(163, 113, 247, 0.18);
+    color: #d2a8ff;
+    border-color: rgba(163, 113, 247, 0.5);
+    box-shadow: 0 0 10px rgba(163, 113, 247, 0.15);
+}
+.pill-lineup:hover {
+    background: #8957e5;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+/* 3. Live Race (Pulsing Green) */
+.pill-live {
+    background: rgba(35, 134, 54, 0.2);
+    color: #3fb950;
+    border-color: #238636;
+}
+.pill-live:hover {
+    background: #238636;
+    color: #ffffff;
+}
+
+.live-pulse {
+    font-size: 0.65rem;
+    animation: pulse 1.5s infinite;
+}
+
+.pill-tbd {
+    font-size: 0.75rem;
+    color: #484f58;
+    font-weight: 600;
+}
+
+/* Hero Banner CTA Link */
+.hero-cta-btn {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.lineup-cta {
+    background: rgba(163, 113, 247, 0.2);
+    color: #d2a8ff;
+    border: 1px solid rgba(163, 113, 247, 0.5);
+}
+.lineup-cta:hover {
+    background: #8957e5;
+    color: #ffffff;
+}
+
+.live-cta {
+    background: rgba(35, 134, 54, 0.25);
+    color: #3fb950;
+    border: 1px solid #238636;
+}
+.live-cta:hover {
+    background: #238636;
+    color: #ffffff;
+}
+
+/* Highlight flash animation when jumped to via pill/banner */
+.highlight-pulse {
+    animation: pulseHighlight 1.5s ease-out;
+}
+
+@keyframes pulseHighlight {
+    0% { box-shadow: 0 0 0 2px #8957e5; }
+    100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* Lineup Modal Dialog Styling */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1250;
+    background-color: rgba(9, 9, 11, 0.82);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    overflow-y: auto;
+}
+
+.lineup-modal-dialog {
+    max-width: 760px !important;
+    width: 90%;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh;
+    color: #f0f6fc;
+    overflow: hidden;
+}
+
+.lineup-modal-dialog .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 16px 20px;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+}
+
+.lineup-modal-dialog .modal-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.lineup-modal-dialog .modal-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0;
+}
+
+.modal-badge-series {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: #e10600;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+    display: block;
+}
+
+.modal-subtitle {
+    font-size: 0.8rem;
+    color: #8b949e;
+}
+
+.lineup-modal-dialog .modal-close-btn {
+    background: transparent;
+    border: 1px solid #30363d;
+    color: #8b949e;
+    border-radius: 6px;
+    width: 30px;
+    height: 30px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.lineup-modal-dialog .modal-close-btn:hover {
+    background: #21262d;
+    color: #ffffff;
+}
+
+.lineup-modal-dialog .modal-body {
+    padding: 0;
+    overflow: hidden;
+    flex: 1;
+}
+
+.lineup-modal-dialog .lineup-table-wrapper {
+    max-height: calc(85vh - 140px);
+    overflow-y: auto;
+}
+
+.lineup-modal-dialog .modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: #161b22;
+    border-top: 1px solid #30363d;
+}
+
+.lineup-modal-dialog .modal-meta-text {
+    font-size: 0.78rem;
+    color: #8b949e;
+    font-weight: 600;
+}
+
+.lineup-modal-dialog .btn-secondary {
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #c9d1d9;
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.lineup-modal-dialog .btn-secondary:hover {
+    background: #30363d;
+    color: #ffffff;
+}
+
 .schedule-status-badge {
     display: inline-flex;
     align-items: center;
@@ -920,26 +1606,77 @@ body {
     border: 1px solid #e5e7eb;
 }
 
-.view-results-link-btn {
+.live-race-badge {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 6px 12px;
+    gap: 6px;
+    background-color: rgba(35, 134, 54, 0.2);
+    color: #3fb950;
+    border: 1px solid #238636;
+    border-radius: 9999px;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.live-race-badge:hover {
+    background-color: #238636;
+    color: #ffffff;
+}
+
+.live-race-badge .live-dot {
+    font-size: 0.65rem;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.45;
+        transform: scale(0.92);
+    }
+}
+
+.btn-view-results,
+.view-results-link-btn {
+    padding: 5px 12px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    border-radius: 6px;
+    display: inline-block;
     background-color: #eff6ff;
     color: #007bff;
     border: 1px solid #bfdbfe;
-    border-radius: 6px;
-    font-size: 0.78rem;
     font-weight: 700;
     cursor: pointer;
-    white-space: nowrap;
+    text-decoration: none;
     transition: background-color 0.15s ease, color 0.15s ease;
 }
 
+.btn-view-results:hover,
 .view-results-link-btn:hover {
     background-color: #007bff;
     color: #ffffff;
     border-color: #007bff;
+}
+
+.schedule-results-tbd {
+    display: inline-block;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #9ca3af;
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    white-space: nowrap;
 }
 
 /* Individual Race Results Viewer Modal (Dark Theme: #18181b card backgrounds, #27272a borders, #e31837 NASCAR red accents) */

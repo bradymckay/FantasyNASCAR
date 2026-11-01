@@ -715,16 +715,16 @@ function resolveOfficialDriverPoints(driverName, roster = null, scoredVehicle = 
     if (!clean) return 0;
     const norm = normalizeName(clean);
 
-    // 1. Check inline "(XX pts)" annotation if present
+    // 1. If live or pre-race vehicle telemetry score is provided and non-zero, use it for live/pre-race scoring
+    if (scoredVehicle && Number(scoredVehicle.totalFantasyPts) > 0 && !options.preferTotalPoints) {
+        return Math.round(Number(scoredVehicle.totalFantasyPts));
+    }
+
+    // 2. Check inline "(XX pts)" annotation if present
     const inlineMatch = String(driverName ?? '').match(/\(([+-]?\d+(?:,\d{3})*(?:\.\d+)?)\s*pts?\)/i);
     if (inlineMatch) {
         const inlinePts = Number(inlineMatch[1].replace(/,/g, ''));
         if (Number.isFinite(inlinePts)) return Math.round(inlinePts);
-    }
-
-    // 2. If live vehicle telemetry score is provided and non-zero, use it for live race scoring
-    if (scoredVehicle && Number(scoredVehicle.totalFantasyPts) > 0 && !options.preferTotalPoints) {
-        return Math.round(Number(scoredVehicle.totalFantasyPts));
     }
 
     // 3. Check manager-level DriverPointsMap on the roster object (from getRosters)
@@ -847,44 +847,166 @@ function rebuildDriverAndTeamMaps(driversArray, teamsArray, rawDriverDataPayload
 rebuildDriverAndTeamMaps(DEFAULT_DRIVER_DIRECTORY, DEFAULT_TEAMS_LIST);
 
 /**
- * Dynamically detects which NASCAR Series feed (Cup = 1, O'Reilly Auto Parts = 2, Truck = 3) is currently live.
+ * Detects Cup Race State (isCupLive) and falls back to the Cup Starting Lineup (run_type === 2)
+ * when the live feed is off, cold, or showing yesterday's lower-series race.
  */
-async function detectAndFetchLiveSeriesFeed() {
-    // 1. Try primary unified live-feed.json first
+async function getActiveLiveFeedData() {
+    const targetCupRaceId = Number(currentNextRaceId) || 5632; // Upcoming Cup Race ID
+
+    // 1. Fetch live telemetry feed
+    let liveFeed = null;
     try {
-        const mainFeed = await fetchWithCorsFallback(LIVE_FEED_URL);
-        if (mainFeed && Array.isArray(mainFeed.vehicles) && mainFeed.vehicles.length > 0) {
-            const detectedSeries = Number(mainFeed.series_id) || 1;
-            activeSeriesId = detectedSeries;
-            return { raceData: mainFeed, seriesId: detectedSeries };
+        const res = await fetch('https://cf.nascar.com/live/feeds/live-feed.json');
+        if (res.ok) {
+            liveFeed = await res.json();
         }
     } catch (e) {
-        console.warn('Unified live-feed.json check failed, probing series-specific feeds...', e.message);
+        try {
+            liveFeed = await fetchWithCorsFallback('https://cf.nascar.com/live/feeds/live-feed.json');
+        } catch (fallbackErr) {
+            console.warn('Live feed unreachable, using fallback.');
+        }
     }
 
-    // 2. Probe Series 1 (Cup), Series 2 (NASCAR O'Reilly Auto Parts Series), and Series 3 (Truck) endpoints in parallel
-    const seriesIds = [1, 2, 3];
-    const probePromises = seriesIds.map(async (id) => {
-        const candidateUrl = `${NASCAR_FEEDS_BASE_URL}/series_${id}/live-feed.json`;
-        const data = await fetchWithCorsFallback(candidateUrl);
-        return { seriesId: id, data };
+    // 2. Check if the live feed currently matches the Cup race and is active
+    const isCupLive = Boolean(
+        liveFeed &&
+        Number(liveFeed.series_id) === 1 &&
+        Number(liveFeed.race_id) === targetCupRaceId &&
+        Number(liveFeed.lap_number) > 0
+    );
+
+    if (isCupLive) {
+        return {
+            isLive: true,
+            isPreRace: false,
+            series_id: 1,
+            race_id: targetCupRaceId,
+            raceName: liveFeed.run_name || liveFeed.race_name || 'Xfinity 500',
+            run_name: liveFeed.run_name || liveFeed.race_name || 'Xfinity 500',
+            trackName: liveFeed.track_name || 'Martinsville Speedway',
+            track_name: liveFeed.track_name || 'Martinsville Speedway',
+            lapNumber: Number(liveFeed.lap_number) || 0,
+            lap_number: Number(liveFeed.lap_number) || 0,
+            lapsInRace: Number(liveFeed.laps_in_race) || 500,
+            laps_in_race: Number(liveFeed.laps_in_race) || 500,
+            laps_to_go: liveFeed.laps_to_go,
+            stage: liveFeed.stage,
+            number_of_leaders: liveFeed.number_of_leaders,
+            flagState: liveFeed.flag_state || 1,
+            flag_state: liveFeed.flag_state || 1,
+            vehicles: Array.isArray(liveFeed.vehicles) ? liveFeed.vehicles : [],
+            drivers: (liveFeed.vehicles || []).map(v => ({
+                carNumber: String(v.vehicle_number ?? '').trim(),
+                driverName: v.driver?.full_name || v.driver_name || 'Unknown Driver',
+                runningPos: Number(v.running_position),
+                startPos: Number(v.starting_position),
+                lapsLed: calculateLapsLed(v.laps_led, Number(liveFeed.lap_number) || 0),
+                status: v.status === 1 ? 'Running' : 'Out'
+            }))
+        };
+    }
+
+    // 3. Pre-Race State: Live feed is either cold, off, or showing yesterday's race.
+    // Fallback to the Cup Starting Lineup from weekend-feed.json
+    const year = new Date().getFullYear();
+    const weekendUrl = `https://cf.nascar.com/cacher/${year}/1/${targetCupRaceId}/weekend-feed.json`;
+    let weekendData = null;
+    try {
+        const weekendRes = await fetch(weekendUrl);
+        if (weekendRes.ok) {
+            weekendData = await weekendRes.json();
+        }
+    } catch (directErr) {
+        weekendData = await fetchWithCorsFallback(weekendUrl);
+    }
+
+    const teamMetaMap = {};
+    const raceEntries = (weekendData?.weekend_race && weekendData.weekend_race[0] && weekendData.weekend_race[0].results) || [];
+    raceEntries.forEach(entry => {
+        const cNum = String(entry.car_number || '').trim();
+        if (cNum) {
+            teamMetaMap[cNum] = {
+                teamName: entry.team_name || 'Independent',
+                carMake: entry.car_make || entry.car_model || ''
+            };
+        }
     });
 
-    const results = await Promise.allSettled(probePromises);
-    const availableFeeds = results
-        .filter(r => r.status === 'fulfilled' && r.value?.data && Array.isArray(r.value.data.vehicles))
-        .map(r => r.value);
+    const qualRun = (weekendData?.weekend_runs || []).find(r => Number(r.run_type) === 2);
+    const qualResults = qualRun && Array.isArray(qualRun.results) ? qualRun.results : [];
 
-    if (availableFeeds.length > 0) {
-        const activeRaceFeed = availableFeeds.find(f =>
-            [1, 2, 3, 4].includes(Number(f.data.flag_state)) && Number(f.data.lap_number) > 0
-        ) || availableFeeds.find(f => f.data.vehicles.length > 0) || availableFeeds[0];
+    // If qualifying is complete, build baseline positions from the starting grid
+    const preRaceDrivers = qualResults.map(q => {
+        const carNumber = String(q.car_number || q.vehicle_number || '').trim();
+        const meta = teamMetaMap[carNumber] || {};
+        return {
+            carNumber,
+            driverName: q.driver_name || '--',
+            runningPos: Number(q.finishing_position), // Starts at qualified position
+            startPos: Number(q.finishing_position),
+            lapsLed: 0,
+            bestLapTime: Number(q.best_lap_time || 0),
+            deltaLeader: q.delta_leader,
+            teamName: meta.teamName || q.team_name || '',
+            manufacturer: meta.carMake || q.manufacturer || '',
+            status: 'Starting Grid'
+        };
+    }).sort((a, b) => a.runningPos - b.runningPos);
 
-        activeSeriesId = Number(activeRaceFeed.data.series_id) || activeRaceFeed.seriesId;
-        return { raceData: activeRaceFeed.data, seriesId: activeSeriesId };
-    }
+    const poleDriver = preRaceDrivers.find(d => d.startPos === 1);
+    const poleCarNumber = poleDriver?.carNumber || '11'; // Denny Hamlin
 
-    throw new Error("No live NASCAR Cup, O'Reilly Auto Parts, or Truck series feed is currently active.");
+    // Also synthesize compatible vehicles array so Live Race Feed and calculateVehicleFantasyScores work seamlessly
+    const preRaceVehicles = preRaceDrivers.map(d => ({
+        vehicle_number: d.carNumber,
+        driver: { full_name: d.driverName },
+        driver_name: d.driverName,
+        team_name: d.teamName,
+        running_position: d.runningPos,
+        starting_position: d.startPos,
+        laps_completed: 0,
+        laps_led: [],
+        best_lap_time: d.bestLapTime,
+        last_lap_time: d.bestLapTime,
+        delta: d.runningPos === 1 ? 0 : Number(d.deltaLeader || 0),
+        status: 1,
+        is_pre_race: true,
+        pole_bonus: (String(d.carNumber).trim() === String(poleCarNumber).trim() || d.startPos === 1) ? 5 : 0
+    }));
+
+    return {
+        isLive: false,
+        isPreRace: true,
+        series_id: 1,
+        race_id: targetCupRaceId,
+        raceName: 'Xfinity 500',
+        run_name: 'Xfinity 500',
+        trackName: 'Martinsville Speedway',
+        track_name: 'Martinsville Speedway',
+        lapNumber: 0,
+        lap_number: 0,
+        lapsInRace: 500,
+        laps_in_race: 500,
+        laps_to_go: 500,
+        flagState: 'PRE-RACE',
+        flag_state: 9,
+        poleCarNumber,
+        drivers: preRaceDrivers,
+        vehicles: preRaceVehicles
+    };
+}
+
+window.getActiveLiveFeedData = getActiveLiveFeedData;
+
+/**
+ * Dynamically detects which NASCAR Series feed is currently live, prioritizing getActiveLiveFeedData()
+ * so pre-race Cup weekend state initializes directly from the Cup Starting Lineup rather than stale lower-series data.
+ */
+async function detectAndFetchLiveSeriesFeed() {
+    const activeFeedData = await getActiveLiveFeedData();
+    activeSeriesId = 1;
+    return { raceData: activeFeedData, seriesId: 1 };
 }
 
 /**
@@ -1877,6 +1999,7 @@ function clearProtectedDashboardDOM() {
     });
 
     closeRaceResultsViewer();
+    if (typeof closeLineupModal === 'function') closeLineupModal();
 }
 
 async function handleAuthLogout() {
@@ -3082,15 +3205,50 @@ function buildVehiclePitStatsMap(pitData, vehicles = [], currentLap = 0) {
 }
 
 /**
- * Calculates Fantasy NASCAR position points based on running position:
- * 1st = 40 pts, 2nd = 35 pts, 3rd = 34 pts ... down to 36th = 1 pt, 37th-40th = 1 pt.
+ * Official League Scoring Model (55-Point Win Scale & Bonuses):
+ * - 1st Place: 55 positional base points (NOT NASCAR's standard 40)
+ * - 2nd Place: 35 points
+ * - 3rd to 35th Place: 37 - pos (P3 = 34, P4 = 33, ... P35 = 2)
+ * - 36th+ Place: 1 point
+ * - Pole Winner Bonus: +5 points (e.g. P1 starts on pole -> 55 + 5 = 60 points)
+ * - Laps Led Bonus: +1 point for leading at least 1 lap
+ * - Most Laps Led Bonus: +4 additional points (+5 total for most laps led)
  */
+function getFantasyFinishPoints(pos) {
+    const p = Number(pos);
+    if (p === 1) return 55;
+    if (p >= 2 && p <= 35) return 37 - p;
+    if (p >= 36) return 1;
+    return 0;
+}
+
+function calculateDriverLivePoints(driver, poleCarNumber, maxLapsLedOverall = 0) {
+    const pos = Number(driver.runningPos || driver.startPos || 99);
+    let totalPts = getFantasyFinishPoints(pos);
+
+    // 1. Pole Winner Bonus (+5 pts)
+    const isPole = (String(driver.carNumber).trim() === String(poleCarNumber).trim()) || (driver.startPos === 1);
+    if (isPole) {
+        totalPts += 5;
+    }
+
+    // 2. Laps Led Bonus
+    const lapsLed = Number(driver.lapsLed || 0);
+    if (lapsLed > 0) {
+        totalPts += 1;
+        if (maxLapsLedOverall > 0 && lapsLed === maxLapsLedOverall) {
+            totalPts += 4;
+        }
+    }
+
+    return totalPts;
+}
+
+window.getFantasyFinishPoints = getFantasyFinishPoints;
+window.calculateDriverLivePoints = calculateDriverLivePoints;
+
 function getPositionPoints(runningPosition) {
-    const pos = Number(runningPosition);
-    if (!pos || pos <= 0) return 0;
-    if (pos === 1) return 40;
-    if (pos >= 2 && pos <= 35) return 37 - pos;
-    return 1;
+    return getFantasyFinishPoints(runningPosition);
 }
 
 /**
@@ -3196,6 +3354,51 @@ function getValidRosters(rosters) {
  * Falls back to live-points.json entries if live_feed.json vehicles are not yet populated.
  */
 function calculateVehicleFantasyScores(raceData, stageData, pointsData) {
+    const isPreRace = Boolean(raceData?.isPreRace);
+    const poleCarNumber = String(raceData?.poleCarNumber || '11').trim();
+
+    // When in Pre-Race mode with starting grid drivers, score strictly from starting position (55-pt scale) + Pole Winner Bonus (+5 pts for P1)
+    if (isPreRace && Array.isArray(raceData?.drivers) && raceData.drivers.length > 0) {
+        return raceData.drivers.map(drv => {
+            const carNumber = String(drv.carNumber ?? '').trim();
+            const driverFullName = drv.driverName || 'Unknown Driver';
+            const normName = normalizeName(driverFullName);
+            const startPos = Number(drv.startPos || drv.runningPos) || 0;
+            const runningPos = Number(drv.runningPos || startPos) || 0;
+            const teamName = cachedDriverTeamMap[normName] || drv.teamName || '';
+            const positionPts = runningPos > 0 ? getFantasyFinishPoints(runningPos) : 0;
+            const isPole = (carNumber === poleCarNumber) || (startPos === 1);
+            const poleBonus = isPole ? 5 : 0;
+            const stagePts = 0;
+            const lapsLed = 0;
+            const lapsLedPts = 0;
+            const mostLedBonus = 0;
+            const totalFantasyPts = calculateDriverLivePoints(
+                { carNumber, runningPos, startPos, lapsLed: 0 },
+                poleCarNumber,
+                0
+            );
+
+            return {
+                carNumber,
+                driverName: driverFullName,
+                normalizedName: normName,
+                teamName,
+                normalizedTeam: normalizeName(teamName),
+                runningPosition: runningPos,
+                startingPosition: startPos,
+                positionPts,
+                poleBonus,
+                stagePts,
+                lapsLed,
+                lapsLedPts,
+                mostLedBonus,
+                totalFantasyPts,
+                isPreRace: true
+            };
+        });
+    }
+
     const vehicles = Array.isArray(raceData?.vehicles) ? raceData.vehicles : [];
     const rawPointsArray = Array.isArray(pointsData)
         ? pointsData
@@ -3215,6 +3418,12 @@ function calculateVehicleFantasyScores(raceData, stageData, pointsData) {
     });
 
     if (vehicles.length === 0 && rawPointsArray.length > 0) {
+        let maxPtsLapsLed = 0;
+        rawPointsArray.forEach(pt => {
+            const led = calculateLapsLed(pt.laps_led, currentLap);
+            if (led > maxPtsLapsLed) maxPtsLapsLed = led;
+        });
+
         return rawPointsArray.map((pt, idx) => {
             const carNumber = String(pt.car_number ?? pt.vehicle_number ?? idx + 1).trim();
             const driverFullName = (
@@ -3222,15 +3431,22 @@ function calculateVehicleFantasyScores(raceData, stageData, pointsData) {
             );
             const normName = normalizeName(driverFullName);
             const runningPos = Number(pt.running_position ?? pt.position ?? pt.points_position) || 0;
+            const startPos = Number(pt.starting_position ?? pt.start_position) || 0;
             const teamName = cachedDriverTeamMap[normName] || pt.team_name || pt.vehicle_owner || '';
-            const positionPts = runningPos > 0 ? getPositionPoints(runningPos) : 0;
+            const positionPts = runningPos > 0 ? getFantasyFinishPoints(runningPos) : 0;
             const stagePts = stageMapByCar.get(carNumber) ?? stageMapByName.get(normName) ?? (
                 (Number(pt.stage_1_points) || 0) + (Number(pt.stage_2_points) || 0) + (Number(pt.stage_3_points) || 0)
             );
             const lapsLed = calculateLapsLed(pt.laps_led, currentLap);
-            const lapsLedPts = lapsLed;
-            const mostLedBonus = 0;
-            const totalFantasyPts = positionPts + lapsLedPts + mostLedBonus + stagePts;
+            const isPole = (carNumber === poleCarNumber) || (startPos === 1);
+            const poleBonus = isPole ? 5 : 0;
+            const lapsLedPts = lapsLed > 0 ? 1 : 0;
+            const mostLedBonus = (maxPtsLapsLed > 0 && lapsLed === maxPtsLapsLed) ? 4 : 0;
+            const totalFantasyPts = calculateDriverLivePoints(
+                { carNumber, runningPos, startPos, lapsLed },
+                poleCarNumber,
+                maxPtsLapsLed
+            ) + stagePts;
             return {
                 carNumber,
                 driverName: driverFullName,
@@ -3238,7 +3454,9 @@ function calculateVehicleFantasyScores(raceData, stageData, pointsData) {
                 teamName,
                 normalizedTeam: normalizeName(teamName),
                 runningPosition: runningPos,
+                startingPosition: startPos,
                 positionPts,
+                poleBonus,
                 stagePts,
                 lapsLed,
                 lapsLedPts,
@@ -3250,12 +3468,16 @@ function calculateVehicleFantasyScores(raceData, stageData, pointsData) {
 
     let maxLapsLed = 0;
     const vehicleLapsLedMap = new Map();
+    let detectedPoleCar = poleCarNumber;
 
     vehicles.forEach(vehicle => {
         const lapsLed = calculateLapsLed(vehicle.laps_led, currentLap);
         vehicleLapsLedMap.set(vehicle.vehicle_number, lapsLed);
         if (lapsLed > maxLapsLed) {
             maxLapsLed = lapsLed;
+        }
+        if (Number(vehicle.starting_position) === 1 && vehicle.vehicle_number !== undefined) {
+            detectedPoleCar = String(vehicle.vehicle_number).trim();
         }
     });
 
@@ -3274,17 +3496,24 @@ function calculateVehicleFantasyScores(raceData, stageData, pointsData) {
                          vehicle.vehicle_sponsor_name ||
                          '';
 
-        const positionPts = getPositionPoints(runningPos);
+        const positionPts = getFantasyFinishPoints(runningPos);
+        const startPos = Number(vehicle.starting_position) || 0;
+        const isPole = (carNumber === detectedPoleCar) || (startPos === 1);
+        const poleBonus = isPole ? 5 : 0;
         const lapsLed = vehicleLapsLedMap.get(vehicle.vehicle_number) || 0;
-        const lapsLedPts = lapsLed * 1;
-        const mostLedBonus = (maxLapsLed > 0 && lapsLed === maxLapsLed) ? 5 : 0;
+        const lapsLedPts = lapsLed > 0 ? 1 : 0;
+        const mostLedBonus = (maxLapsLed > 0 && lapsLed === maxLapsLed) ? 4 : 0;
         const stagePts = stageMapByCar.get(carNumber) ?? stageMapByName.get(normName) ?? (
             ptEntry
                 ? ((Number(ptEntry.stage_1_points) || 0) + (Number(ptEntry.stage_2_points) || 0) + (Number(ptEntry.stage_3_points) || 0))
                 : 0
         );
 
-        const totalFantasyPts = positionPts + lapsLedPts + mostLedBonus + stagePts;
+        const totalFantasyPts = calculateDriverLivePoints(
+            { carNumber, runningPos, startPos, lapsLed },
+            detectedPoleCar,
+            maxLapsLed
+        ) + stagePts;
 
         return {
             carNumber,
@@ -3293,7 +3522,9 @@ function calculateVehicleFantasyScores(raceData, stageData, pointsData) {
             teamName,
             normalizedTeam: normalizeName(teamName),
             runningPosition: runningPos,
+            startingPosition: startPos,
             positionPts,
+            poleBonus,
             stagePts,
             lapsLed,
             lapsLedPts,
@@ -3348,7 +3579,7 @@ function calculateLiveRosterStandings(raceData, stageData, pointsData, rosters) 
                     posPtsTotal += matchedVehicle.positionPts;
                     stagePtsTotal += matchedVehicle.stagePts;
                     ledPtsTotal += matchedVehicle.lapsLedPts;
-                    mostLedBonusTotal += matchedVehicle.mostLedBonus;
+                    mostLedBonusTotal += matchedVehicle.mostLedBonus + (Number(matchedVehicle.poleBonus) || 0);
                 }
                 driverPtsTotal += officialDriverPts;
                 return {
@@ -3358,7 +3589,7 @@ function calculateLiveRosterStandings(raceData, stageData, pointsData, rosters) 
                     points: officialDriverPts,
                     posPts: matchedVehicle.positionPts,
                     stagePts: matchedVehicle.stagePts,
-                    ledPts: matchedVehicle.lapsLedPts + matchedVehicle.mostLedBonus
+                    ledPts: matchedVehicle.lapsLedPts + matchedVehicle.mostLedBonus + (Number(matchedVehicle.poleBonus) || 0)
                 };
             }
 
@@ -3636,10 +3867,16 @@ async function updateLiveRaceStandingsTable(raceData, stageData, pointsData) {
     if (!liveRaceTbody && !projectedSeasonTbody) return;
 
     if (liveBannerEl) {
-        if (raceData && (raceData.run_name || raceData.track_name)) {
-            const titlePart = [raceData.run_name, raceData.track_name].filter(Boolean).join(' • ');
-            const lapPart = raceData.lap_number !== undefined
-                ? ` — Lap ${raceData.lap_number}${raceData.laps_in_race ? ` / ${raceData.laps_in_race}` : ''}`
+        if (raceData && raceData.isPreRace) {
+            const raceTitle = raceData.raceName || raceData.run_name || 'Xfinity 500';
+            const trackTitle = raceData.trackName || raceData.track_name || 'Martinsville Speedway';
+            liveBannerEl.textContent = `${raceTitle} • ${trackTitle} — Starting Grid (Green Flag at 11:00 AM PST)`;
+        } else if (raceData && (raceData.run_name || raceData.raceName || raceData.track_name || raceData.trackName)) {
+            const titlePart = [raceData.run_name || raceData.raceName, raceData.track_name || raceData.trackName].filter(Boolean).join(' • ');
+            const lapVal = raceData.lap_number ?? raceData.lapNumber;
+            const totalLapsVal = raceData.laps_in_race ?? raceData.lapsInRace;
+            const lapPart = lapVal !== undefined
+                ? ` — Lap ${lapVal}${totalLapsVal ? ` / ${totalLapsVal}` : ''}`
                 : '';
             liveBannerEl.textContent = `${titlePart}${lapPart}`;
         } else {
@@ -4453,17 +4690,158 @@ let scheduleFetchPromise = null;
 let cachedResultsSheetRows = null;
 let resultsSheetFetchPromise = null;
 const cachedRaceResultsMap = new Map();
+let currentNextRaceId = 5632;
+let currentNextRaceHasQualifying = true;
+
+/**
+ * Fallback 2026 NASCAR Cup Series 40-race date/time schedule (keyed by raceId or 1-based raceNumber)
+ * used when the Google Sheet RaceScores / getSchedule payload does not explicitly include race_date or start_time.
+ */
+const DEFAULT_CUP_SCHEDULE_DATES_BY_NUM = {
+    1: 'Sun, Feb 1 • 8:00 PM ET',
+    2: 'Thu, Feb 12 • 7:00 PM ET',
+    3: 'Thu, Feb 12 • 8:45 PM ET',
+    4: 'Sun, Feb 15 • 2:30 PM ET',
+    5: 'Sun, Feb 22 • 3:00 PM ET',
+    6: 'Sun, Mar 1 • 3:30 PM ET',
+    7: 'Sun, Mar 8 • 3:30 PM ET',
+    8: 'Sun, Mar 15 • 3:30 PM ET',
+    9: 'Sun, Mar 22 • 3:00 PM ET',
+    10: 'Sun, Mar 29 • 3:30 PM ET',
+    11: 'Sun, Apr 5 • 7:00 PM ET',
+    12: 'Sun, Apr 12 • 3:00 PM ET',
+    13: 'Sun, Apr 19 • 2:00 PM ET',
+    14: 'Sun, Apr 26 • 3:00 PM ET',
+    15: 'Sun, May 3 • 3:30 PM ET',
+    16: 'Sun, May 10 • 3:00 PM ET',
+    17: 'Sun, May 17 • 5:30 PM ET',
+    18: 'Sun, May 17 • 8:00 PM ET',
+    19: 'Sun, May 24 • 6:00 PM ET',
+    20: 'Sun, May 31 • 7:00 PM ET',
+    21: 'Sun, Jun 7 • 2:00 PM ET',
+    22: 'Sun, Jun 14 • 3:30 PM ET',
+    23: 'Sun, Jun 21 • 7:00 PM ET',
+    24: 'Sat, Jun 27 • 7:00 PM ET',
+    25: 'Sun, Jul 5 • 4:30 PM ET',
+    26: 'Sun, Jul 12 • 5:00 PM ET',
+    27: 'Sun, Jul 19 • 2:30 PM ET',
+    28: 'Sun, Jul 26 • 3:30 PM ET',
+    29: 'Sun, Aug 2 • 3:00 PM ET',
+    30: 'Sun, Aug 9 • 6:00 PM ET',
+    31: 'Sat, Aug 15 • 7:30 PM ET',
+    32: 'Sat, Aug 22 • 7:30 PM ET',
+    33: 'Sun, Sep 6 • 6:00 PM ET',
+    34: 'Sun, Sep 13 • 3:00 PM ET',
+    35: 'Sat, Sep 19 • 7:30 PM ET',
+    36: 'Sun, Sep 27 • 3:30 PM ET',
+    37: 'Sun, Oct 4 • 2:00 PM ET',
+    38: 'Sun, Oct 11 • 2:00 PM ET',
+    39: 'Sun, Oct 18 • 2:30 PM ET',
+    40: 'Sun, Oct 25 • 2:00 PM ET',
+    41: 'Sun, Nov 1 • 2:00 PM ET'
+};
+
+/**
+ * Formats a race date and start time into a clean display string (e.g., "Sun, Nov 1 • 2:00 PM" or "Nov 1, 2:00 PM ET").
+ */
+function formatScheduleDateTimeDisplay(rawDate, rawTime, raceNumber = null) {
+    const dateStr = String(rawDate ?? '').trim();
+    const timeStr = String(rawTime ?? '').trim();
+
+    if (dateStr && timeStr) {
+        // Check if dateStr is ISO or parseable date
+        const parsedDate = new Date(dateStr);
+        if (!Number.isNaN(parsedDate.getTime()) && /\d{4}/.test(dateStr)) {
+            const formattedDate = parsedDate.toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric'
+            });
+            return `${formattedDate} • ${timeStr}`;
+        }
+        return `${dateStr} • ${timeStr}`;
+    }
+
+    if (dateStr) {
+        const parsed = new Date(dateStr);
+        if (!Number.isNaN(parsed.getTime()) && /\d{4}/.test(dateStr)) {
+            const hasTimeComponent = /T\d{2}:\d{2}|\d{1,2}:\d{2}/i.test(dateStr);
+            const datePart = parsed.toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric'
+            });
+            if (hasTimeComponent) {
+                const timePart = parsed.toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit'
+                });
+                return `${datePart} • ${timePart}`;
+            }
+            return datePart;
+        }
+        return dateStr;
+    }
+
+    if (timeStr) {
+        return timeStr;
+    }
+
+    if (raceNumber && DEFAULT_CUP_SCHEDULE_DATES_BY_NUM[Number(raceNumber)]) {
+        return DEFAULT_CUP_SCHEDULE_DATES_BY_NUM[Number(raceNumber)];
+    }
+
+    return 'TBD';
+}
+
+/**
+ * Determines whether a given schedule race is currently live based on explicit flags
+ * (race.isLive / is_live === true / status === 'live') or by matching the active live telemetry feed
+ * when laps completed > 0 and the race is not yet marked completed in the fantasy standings.
+ */
+function isScheduleRaceCurrentlyLive(race) {
+    if (!race || race.isCompleted) return false;
+    if (race.isLive === true || race.is_live === true) return true;
+    if (/^live|in\s*progress$/i.test(String(race.status ?? ''))) return true;
+    if (Number(race.lapsCompleted) > 0) return true;
+
+    if (latestRaceData && typeof latestRaceData === 'object') {
+        const feedLaps = Number(latestRaceData.lap_number) || 0;
+        const feedFlag = Number(latestRaceData.flag_state) || 0;
+        const isFeedActive = feedLaps > 0 && [1, 2, 3, 4, 8].includes(feedFlag);
+        if (isFeedActive) {
+            const feedRaceId = String(latestRaceData.race_id ?? '').trim();
+            const schedRaceId = String(race.raceId ?? '').trim();
+            if (feedRaceId && schedRaceId && feedRaceId === schedRaceId) {
+                return true;
+            }
+            const feedRunName = normalizeName(latestRaceData.run_name || '');
+            const feedTrackName = normalizeName(latestRaceData.track_name || '');
+            const schedName = normalizeName(race.raceName || '');
+            const schedTrack = normalizeName(race.trackName || '');
+            if (feedRunName && schedName && (feedRunName.includes(schedName) || schedName.includes(feedRunName))) {
+                return true;
+            }
+            if (feedTrackName && schedTrack && schedTrack !== 'tba' && (feedTrackName.includes(schedTrack) || schedTrack.includes(feedTrackName))) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
 
 /**
  * Derives the full 40-race Season Schedule directly from the valid managers' RaceScores array in getRosters.
  * Iterates through indices 0..39 (or all races present in RaceScores):
  * - raceNumber: index + 1
  * - raceId: race.raceId
+ * - raceDate / startTime / dateTimeDisplay
  * - raceName: race.raceName
  * - trackName: race.trackName
  * - Calculates each manager's score for that race (mgr.RaceScores[index].points).
  * - If sum of manager points > 0, marks status = 'Completed', finds winningPoints, and lists top-scoring manager(s) as fantasyWinner.
- * - Otherwise marks status = 'Upcoming' and fantasyWinner = '—'.
+ * - Otherwise marks status = 'Upcoming' and fantasyWinner = '--'.
  */
 function deriveSeasonScheduleFromRosters(validRosters) {
     if (!Array.isArray(validRosters) || validRosters.length === 0) return [];
@@ -4481,6 +4859,10 @@ function deriveSeasonScheduleFromRosters(validRosters) {
         let raceId = '';
         let raceName = '';
         let trackName = '';
+        let raceDate = '';
+        let startTime = '';
+        let explicitIsLive = false;
+        let lapsCompleted = 0;
 
         for (const mgr of validRosters) {
             const raceObj = Array.isArray(mgr.RaceScores) ? mgr.RaceScores[index] : null;
@@ -4488,7 +4870,26 @@ function deriveSeasonScheduleFromRosters(validRosters) {
                 if (!raceId) raceId = String(raceObj.raceId ?? raceObj.RaceId ?? raceObj.id ?? '').trim();
                 if (!raceName) raceName = String(raceObj.raceName ?? raceObj.RaceName ?? raceObj.name ?? '').trim();
                 if (!trackName) trackName = String(raceObj.trackName ?? raceObj.TrackName ?? raceObj.track ?? raceObj.Track ?? '').trim();
-                if (raceId && raceName && trackName) break;
+                if (!raceDate) {
+                    raceDate = String(
+                        raceObj.race_date ?? raceObj.raceDate ?? raceObj.RaceDate ??
+                        raceObj.date ?? raceObj.Date ?? raceObj.scheduledDate ?? ''
+                    ).trim();
+                }
+                if (!startTime) {
+                    startTime = String(
+                        raceObj.start_time ?? raceObj.startTime ?? raceObj.StartTime ??
+                        raceObj.time ?? raceObj.Time ?? raceObj.scheduledTime ?? ''
+                    ).trim();
+                }
+                if (raceObj.is_live === true || raceObj.isLive === true) {
+                    explicitIsLive = true;
+                }
+                const objLaps = Number(raceObj.laps_completed ?? raceObj.lapsCompleted ?? 0);
+                if (objLaps > lapsCompleted) {
+                    lapsCompleted = objLaps;
+                }
+                if (raceId && raceName && trackName && raceDate) break;
             }
         }
 
@@ -4510,7 +4911,7 @@ function deriveSeasonScheduleFromRosters(validRosters) {
         });
 
         const isCompleted = sumPoints > 0;
-        let fantasyWinner = '—';
+        let fantasyWinner = '--';
         if (isCompleted && winningPoints > 0) {
             const topManagers = managerScores
                 .filter(m => m.points === winningPoints)
@@ -4528,14 +4929,20 @@ function deriveSeasonScheduleFromRosters(validRosters) {
                 gap: idx === 0 ? '—' : `-${Math.max(0, winningPoints - m.points).toLocaleString('en-US')}`
             }));
 
+        const raceNumber = index + 1;
         derivedSchedule.push({
-            raceNumber: index + 1,
-            raceId: raceId || String(index + 1),
-            raceName: raceName || `Race ${index + 1}`,
+            raceNumber,
+            raceId: raceId || String(raceNumber),
+            raceDate,
+            startTime,
+            dateTimeDisplay: formatScheduleDateTimeDisplay(raceDate, startTime, raceNumber),
+            raceName: raceName || `Race ${raceNumber}`,
             trackName: trackName || 'TBA',
-            status: isCompleted ? 'Completed' : 'Upcoming',
+            status: isCompleted ? 'Completed' : (explicitIsLive ? 'Live' : 'Upcoming'),
             isCompleted,
-            fantasyWinner: isCompleted ? fantasyWinner : '—',
+            isLive: !isCompleted && (explicitIsLive || lapsCompleted > 0),
+            lapsCompleted,
+            fantasyWinner: isCompleted ? fantasyWinner : '--',
             winningPoints: isCompleted ? winningPoints : 0,
             managerResults: sortedManagerResults
         });
@@ -4546,7 +4953,7 @@ function deriveSeasonScheduleFromRosters(validRosters) {
 
 /**
  * Loads the 40-race season schedule by deriving it directly from getRosters (RaceScores),
- * with a fallback to ${APPS_SCRIPT_URL}?action=getSchedule if RaceScores is not populated.
+ * and enriching or falling back to ${APPS_SCRIPT_URL}?action=getSchedule for race_date / start_time / is_live.
  */
 async function loadSeasonSchedule(forceRefresh = false) {
     if (!currentAuthUser) return [];
@@ -4560,48 +4967,105 @@ async function loadSeasonSchedule(forceRefresh = false) {
             const rosters = await loadUserRosters(forceRefresh);
             const validRosters = getValidRosters(rosters);
             const derived = deriveSeasonScheduleFromRosters(validRosters);
+
+            // Also attempt to fetch ?action=getSchedule so we can merge any official race_date / start_time / is_live fields
+            let rawScheduleList = [];
+            try {
+                const res = await fetch(`${APPS_SCRIPT_URL}?action=getSchedule`);
+                if (res.ok) {
+                    const rawData = await res.json();
+                    rawScheduleList = Array.isArray(rawData)
+                        ? rawData
+                        : (rawData?.schedule || rawData?.races || rawData?.data || []);
+                }
+            } catch (schedErr) {
+                // Non-blocking if ?action=getSchedule is not defined on the Apps Script
+            }
+
             if (derived.length > 0) {
+                if (Array.isArray(rawScheduleList) && rawScheduleList.length > 0) {
+                    derived.forEach((race, idx) => {
+                        const match = rawScheduleList.find((item, itemIdx) => {
+                            if (!item || typeof item !== 'object') return false;
+                            const itemId = String(item.raceId ?? item.RaceId ?? item.race_id ?? '').trim();
+                            if (itemId && race.raceId && itemId === race.raceId) return true;
+                            const itemNum = Number(item.raceNumber ?? item.RaceNumber ?? item.race_number ?? (itemIdx + 1));
+                            return itemNum === race.raceNumber;
+                        });
+                        if (match) {
+                            const rDate = String(
+                                match.race_date ?? match.raceDate ?? match.RaceDate ??
+                                match.date ?? match.Date ?? match['Race Date'] ?? match['Date'] ?? race.raceDate ?? ''
+                            ).trim();
+                            const sTime = String(
+                                match.start_time ?? match.startTime ?? match.StartTime ??
+                                match.time ?? match.Time ?? match['Start Time'] ?? match['Time'] ?? race.startTime ?? ''
+                            ).trim();
+                            if (rDate || sTime) {
+                                race.raceDate = rDate;
+                                race.startTime = sTime;
+                                race.dateTimeDisplay = formatScheduleDateTimeDisplay(rDate, sTime, race.raceNumber);
+                            }
+                            const lapsComp = Number(match.laps_completed ?? match.lapsCompleted ?? match.laps ?? 0);
+                            if (lapsComp > 0) race.lapsCompleted = lapsComp;
+                            if (!race.isCompleted && (match.is_live === true || match.isLive === true || lapsComp > 0)) {
+                                race.isLive = true;
+                            }
+                        }
+                    });
+                }
                 cachedSeasonSchedule = derived;
                 return cachedSeasonSchedule;
             }
 
-            // Fallback: fetch ?action=getSchedule if RaceScores was not embedded in getRosters
-            const res = await fetch(`${APPS_SCRIPT_URL}?action=getSchedule`);
-            if (res.ok) {
-                const rawData = await res.json();
-                const rawList = Array.isArray(rawData)
-                    ? rawData
-                    : (rawData?.schedule || rawData?.races || rawData?.data || []);
+            if (Array.isArray(rawScheduleList) && rawScheduleList.length > 0) {
+                cachedSeasonSchedule = rawScheduleList.map((item, idx) => {
+                    const raceNumber = Number(item.raceNumber ?? item.RaceNumber ?? item.race_number ?? (idx + 1)) || (idx + 1);
+                    const raceId = String(item.raceId ?? item.RaceId ?? item.race_id ?? '').trim();
+                    const raceName = String(item.raceName ?? item.RaceName ?? item.race_name ?? item.name ?? '').trim();
+                    const trackName = String(item.trackName ?? item.TrackName ?? item.track_name ?? item.track ?? '').trim();
+                    const raceDate = String(
+                        item.race_date ?? item.raceDate ?? item.RaceDate ??
+                        item.date ?? item.Date ?? item['Race Date'] ?? item['Date'] ?? ''
+                    ).trim();
+                    const startTime = String(
+                        item.start_time ?? item.startTime ?? item.StartTime ??
+                        item.time ?? item.Time ?? item['Start Time'] ?? item['Time'] ?? ''
+                    ).trim();
+                    const rawStatus = String(item.status ?? item.Status ?? '').trim();
+                    const fantasyWinner = String(item.fantasyWinner ?? item.FantasyWinner ?? item.winner ?? '').trim();
+                    const winningPoints = Number(String(item.winningPoints ?? item.WinningPoints ?? item.points ?? 0).replace(/,/g, '')) || 0;
+                    const lapsCompleted = Number(item.laps_completed ?? item.lapsCompleted ?? item.laps ?? 0) || 0;
+                    const isCompleted = (
+                        /^completed$/i.test(rawStatus) ||
+                        item.isCompleted === true ||
+                        item.completed === true ||
+                        (Boolean(fantasyWinner && fantasyWinner !== '—' && fantasyWinner !== '--') && winningPoints > 0)
+                    );
+                    const isLive = !isCompleted && (
+                        item.is_live === true ||
+                        item.isLive === true ||
+                        /^live|in\s*progress$/i.test(rawStatus) ||
+                        lapsCompleted > 0
+                    );
 
-                if (Array.isArray(rawList) && rawList.length > 0) {
-                    cachedSeasonSchedule = rawList.map((item, idx) => {
-                        const raceNumber = item.raceNumber ?? item.RaceNumber ?? item.race_number ?? (idx + 1);
-                        const raceId = String(item.raceId ?? item.RaceId ?? item.race_id ?? '').trim();
-                        const raceName = String(item.raceName ?? item.RaceName ?? item.race_name ?? item.name ?? '').trim();
-                        const trackName = String(item.trackName ?? item.TrackName ?? item.track_name ?? item.track ?? '').trim();
-                        const rawStatus = String(item.status ?? item.Status ?? '').trim();
-                        const fantasyWinner = String(item.fantasyWinner ?? item.FantasyWinner ?? item.winner ?? '').trim();
-                        const winningPoints = Number(String(item.winningPoints ?? item.WinningPoints ?? item.points ?? 0).replace(/,/g, '')) || 0;
-                        const isCompleted = (
-                            /^completed$/i.test(rawStatus) ||
-                            item.isCompleted === true ||
-                            item.completed === true ||
-                            (Boolean(fantasyWinner && fantasyWinner !== '—' && fantasyWinner !== '--') && winningPoints > 0)
-                        );
-
-                        return {
-                            raceNumber,
-                            raceId,
-                            raceName,
-                            trackName,
-                            status: isCompleted ? 'Completed' : 'Upcoming',
-                            isCompleted,
-                            fantasyWinner: isCompleted ? fantasyWinner : '—',
-                            winningPoints: isCompleted ? winningPoints : 0,
-                            managerResults: []
-                        };
-                    }).filter(r => r.raceId || r.raceName);
-                }
+                    return {
+                        raceNumber,
+                        raceId,
+                        raceDate,
+                        startTime,
+                        dateTimeDisplay: formatScheduleDateTimeDisplay(raceDate, startTime, raceNumber),
+                        raceName,
+                        trackName,
+                        status: isCompleted ? 'Completed' : (isLive ? 'Live' : 'Upcoming'),
+                        isCompleted,
+                        isLive,
+                        lapsCompleted,
+                        fantasyWinner: isCompleted ? fantasyWinner : '--',
+                        winningPoints: isCompleted ? winningPoints : 0,
+                        managerResults: []
+                    };
+                }).filter(r => r.raceId || r.raceName);
             }
         } catch (err) {
             console.warn('Could not load season schedule:', err.message);
@@ -4619,8 +5083,58 @@ async function loadSeasonSchedule(forceRefresh = false) {
 }
 
 /**
+ * Schedule table Results column cell generator:
+ * - Live Races: green glowing "● Race is Live" pill
+ * - Completed Races: standard "View Results" pill
+ * - Next Upcoming Race with Qualifying Complete: purple/indigo "View Lineup" pill
+ * - Far-Future Races: subtle "Upcoming" label
+ */
+function renderResultsActionCell(race, isNextRace, hasQualifying, isLive) {
+    const rawRaceKey = String(race.raceId ?? race.race_id ?? race.raceName ?? race.raceNumber ?? '').trim();
+    const escapedRaceId = rawRaceKey.replace(/'/g, "\\'");
+
+    if (isLive) {
+        return `
+            <button type="button" class="pill-btn pill-live" onclick="event.stopPropagation(); switchTab('liveFeed')">
+                <span class="live-pulse">●</span> Race is Live
+            </button>
+        `;
+    }
+
+    if (race.status === 'COMPLETED' || race.status === 'Completed' || race.is_completed || race.isCompleted) {
+        return `
+            <button type="button" class="pill-btn pill-results" onclick="event.stopPropagation(); viewRaceResults('${escapedRaceId}')">
+                View Results
+            </button>
+        `;
+    }
+
+    // Pre-race with qualified lineup available
+    if (isNextRace && hasQualifying) {
+        return `
+            <button type="button" class="pill-btn pill-lineup" onclick="event.stopPropagation(); openStartingLineupModal('${escapedRaceId}')">
+                View Lineup
+            </button>
+        `;
+    }
+
+    return `<span class="pill-tbd">Upcoming</span>`;
+}
+
+function viewRaceResults(raceId) {
+    return loadIndividualRaceResults(raceId);
+}
+
+window.viewRaceResults = viewRaceResults;
+window.renderResultsActionCell = renderResultsActionCell;
+
+window.scrollToStartingLineup = function(raceId) {
+    openStartingLineupModal(raceId || currentNextRaceId || 5632);
+};
+
+/**
  * Tab 6: Renders the 40-race Season Schedule table (#season-schedule-body) with:
- * RACE # | RACE ID | RACE NAME | TRACK | STATUS | FANTASY WINNER | RESULTS ('View Results →')
+ * RACE # | DATE / TIME | RACE NAME | TRACK | STATUS | FANTASY WINNER | RESULTS
  */
 async function updateSeasonScheduleTable(forceRefresh = false) {
     const tbody = document.getElementById('season-schedule-body');
@@ -4637,36 +5151,57 @@ async function updateSeasonScheduleTable(forceRefresh = false) {
         return;
     }
 
+    // Identify the first upcoming (non-completed) race in the schedule as the next race
+    const firstUpcomingIdx = schedule.findIndex(r => !r.isCompleted && !r.is_completed && String(r.status).toUpperCase() !== 'COMPLETED');
+
     tbody.innerHTML = schedule.map((race, idx) => {
         const raceNumDisplay = race.raceNumber ?? (idx + 1);
-        const raceIdDisplay = race.raceId || '—';
+        const dateTimeDisplay = race.dateTimeDisplay || formatScheduleDateTimeDisplay(race.raceDate, race.startTime, raceNumDisplay);
         const raceNameDisplay = race.raceName || 'TBA';
         const trackDisplay = race.trackName || 'TBA';
+        const isLive = isScheduleRaceCurrentlyLive(race);
 
-        const statusBadge = race.isCompleted
-            ? '<span class="schedule-status-badge schedule-status-completed">Completed</span>'
-            : '<span class="schedule-status-badge schedule-status-upcoming">Upcoming</span>';
+        const isNextRace = !race.isCompleted && (
+            idx === firstUpcomingIdx ||
+            (currentNextRaceId && String(race.raceId) === String(currentNextRaceId))
+        );
+        const hasQualifying = isNextRace ? Boolean(currentNextRaceHasQualifying) : false;
 
-        const winnerDisplay = (race.isCompleted && race.fantasyWinner && race.fantasyWinner !== '—')
+        let statusBadge = '';
+        if (race.isCompleted) {
+            statusBadge = '<span class="schedule-status-badge schedule-status-completed">Completed</span>';
+        } else if (isLive) {
+            statusBadge = `<a href="#live" class="live-race-badge" onclick="event.stopPropagation(); switchTab('liveFeed')"><span class="live-dot">●</span> Race is Live</a>`;
+        } else {
+            statusBadge = '<span class="schedule-status-badge schedule-status-upcoming">Upcoming</span>';
+        }
+
+        const winnerDisplay = (race.isCompleted && race.fantasyWinner && race.fantasyWinner !== '—' && race.fantasyWinner !== '--')
             ? `🏆 <strong>${race.fantasyWinner}</strong> <span class="mono-cell">(${race.winningPoints.toLocaleString('en-US')} pts)</span>`
-            : '—';
+            : '--';
 
         const rawRaceKey = String(race.raceId || race.raceName || raceNumDisplay).trim();
         const escapedRaceId = rawRaceKey.replace(/'/g, "\\'");
 
+        const resultsActionHtml = renderResultsActionCell(race, isNextRace, hasQualifying, isLive);
+
+        const rowClickAttr = race.isCompleted
+            ? `style="cursor: pointer;" onclick="loadIndividualRaceResults('${escapedRaceId}')" title="Click to view full race results and NASCAR driver breakdown"`
+            : (isLive
+                ? `style="cursor: pointer;" onclick="switchTab('liveFeed')" title="Click to open Live Race Feed"`
+                : (isNextRace && hasQualifying
+                    ? `style="cursor: pointer;" onclick="openStartingLineupModal('${escapedRaceId}')" title="Click to view official starting lineup"`
+                    : ''));
+
         return `
-            <tr class="schedule-race-row" style="cursor: pointer;" onclick="loadIndividualRaceResults('${escapedRaceId}')" title="Click to view full race results and NASCAR driver breakdown">
+            <tr class="schedule-race-row" ${rowClickAttr}>
                 <td class="pos-cell">${raceNumDisplay}</td>
-                <td class="mono-cell">${raceIdDisplay}</td>
+                <td class="mono-cell">${dateTimeDisplay}</td>
                 <td class="driver-cell">${raceNameDisplay}</td>
                 <td>${trackDisplay}</td>
                 <td>${statusBadge}</td>
                 <td>${winnerDisplay}</td>
-                <td>
-                    <button type="button" class="view-results-link-btn" onclick="event.stopPropagation(); loadIndividualRaceResults('${escapedRaceId}')">
-                        View Results →
-                    </button>
-                </td>
+                <td>${resultsActionHtml}</td>
             </tr>
         `;
     }).join('');
@@ -5614,7 +6149,27 @@ window.loadIndividualRaceResults = loadIndividualRaceResults;
  * 5. 'team-rosters' (Team Rosters / Selections)
  * 6. 'season-schedule' (Season Schedule)
  */
-function switchTab(event, tabId) {
+function switchTab(eventOrTabId, maybeTabId) {
+    let event = null;
+    let rawTabId = maybeTabId;
+
+    if (typeof eventOrTabId === 'string') {
+        rawTabId = eventOrTabId;
+    } else {
+        event = eventOrTabId;
+    }
+
+    const tabAliases = {
+        liveFeed: 'live-race-feed',
+        live: 'live-race-feed',
+        seriesLiveStandings: 'series-live-standings',
+        liveRaceStandings: 'live-race-standings',
+        fantasyStandings: 'fantasy-standings',
+        teamRosters: 'team-rosters',
+        seasonSchedule: 'season-schedule'
+    };
+    const tabId = tabAliases[rawTabId] || rawTabId;
+
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('active');
         btn.setAttribute('aria-selected', 'false');
@@ -5623,7 +6178,7 @@ function switchTab(event, tabId) {
         panel.classList.remove('active');
     });
 
-    if (event && event.currentTarget) {
+    if (event && event.currentTarget && event.currentTarget.classList && event.currentTarget.classList.contains('tab-btn')) {
         event.currentTarget.classList.add('active');
         event.currentTarget.setAttribute('aria-selected', 'true');
     } else {
@@ -5746,11 +6301,18 @@ async function fetchLiveTelemetry() {
         if (latestRaceData) {
             updateTelemetryHeader(latestRaceData, seriesId);
             updateTelemetryTable(latestRaceData, latestPitData);
+            const feedLaps = Number(latestRaceData.lap_number) || 0;
+            const feedFlag = Number(latestRaceData.flag_state) || 0;
+            const isFeedRaceLive = feedLaps > 0 && [1, 2, 3, 4].includes(feedFlag);
+            if (isFeedRaceLive) {
+                updateHeroAndLineupLiveState(true);
+            }
         }
         updateSeriesLiveStandingsTable(latestPointsData, latestRaceData, latestStageData);
         await updateLiveRaceStandingsTable(latestRaceData, latestStageData, latestPointsData);
         await updateFantasyStandingsTable(latestRaceData, latestStageData, latestPointsData);
         await updateTeamRostersTab(latestRaceData, latestStageData, latestPointsData);
+        await updateSeasonScheduleTable();
     } catch (error) {
         console.warn('Temporary error during NASCAR live telemetry poll (will retry on next 5s tick):', error.message);
         renderErrorState(error);
@@ -5792,6 +6354,10 @@ function stopLiveTelemetryPollingLoop() {
     if (livePollingIntervalId !== null) {
         clearInterval(livePollingIntervalId);
         livePollingIntervalId = null;
+    }
+    if (countdownInterval !== null) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
     }
 }
 
@@ -5842,9 +6408,14 @@ function updateTelemetryHeader(data, detectedSeriesId) {
     }
 
     if (flagStateBtn) {
-        const flagInfo = FLAG_STATES[data.flag_state] || FLAG_STATES[1];
-        flagStateBtn.textContent = flagInfo.name;
-        flagStateBtn.className = flagInfo.className;
+        if (data.isPreRace || data.flagState === 'PRE-RACE' || data.flag_state === 'PRE-RACE') {
+            flagStateBtn.textContent = 'PRE-RACE';
+            flagStateBtn.className = 'flag-button flag-white';
+        } else {
+            const flagInfo = FLAG_STATES[data.flag_state] || FLAG_STATES[1];
+            flagStateBtn.textContent = flagInfo.name;
+            flagStateBtn.className = flagInfo.className;
+        }
     }
 }
 
@@ -5956,11 +6527,378 @@ function renderErrorState(error) {
 }
 
 /**
- * Triggers initial league roster, schedule, and live telemetry data fetching once authenticated.
+ * Next Race Landing Hero & Countdown Hub (#nextRaceHero)
+ */
+let countdownInterval = null;
+
+async function loadNextRaceHero() {
+    try {
+        const year = new Date().getFullYear();
+        let data = null;
+        try {
+            const res = await fetch(`https://cf.nascar.com/cacher/${year}/race_list_basic.json`);
+            if (res.ok) {
+                data = await res.json();
+            }
+        } catch (directErr) {
+            data = await fetchWithCorsFallback(`https://cf.nascar.com/cacher/${year}/race_list_basic.json`);
+        }
+        if (!data) return;
+
+        const cupRaces = (data.series_1 || data.races || []).filter(r => Number(r.series_id) === 1);
+        if (cupRaces.length === 0) return;
+
+        // Also enrich cachedSeasonSchedule date/time if available
+        if (Array.isArray(cachedSeasonSchedule) && cachedSeasonSchedule.length > 0) {
+            cachedSeasonSchedule.forEach(schedRace => {
+                const matchCup = cupRaces.find(cr => String(cr.race_id) === String(schedRace.raceId));
+                if (matchCup) {
+                    const rEvent = (matchCup.schedule || []).find(e => e.run_type === 3 || e.event_name === 'Race');
+                    const utcStr = rEvent ? rEvent.start_time_utc : matchCup.date_scheduled;
+                    if (utcStr) {
+                        const dt = new Date(utcStr.endsWith('Z') ? utcStr : utcStr + 'Z');
+                        if (!Number.isNaN(dt.getTime())) {
+                            schedRace.dateTimeDisplay = new Intl.DateTimeFormat([], {
+                                weekday: 'short',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                hour12: true
+                            }).format(dt);
+                        }
+                    }
+                }
+            });
+        }
+
+        const now = new Date();
+
+        // Find the next upcoming or currently active race
+        const nextRace = cupRaces.find(r => {
+            // Find race schedule event with run_type 3 or "Race"
+            const raceEvent = (r.schedule || []).find(e => e.run_type === 3 || e.event_name === 'Race');
+            const rawUtc = raceEvent ? raceEvent.start_time_utc : r.date_scheduled;
+            const raceUtc = rawUtc ? new Date(rawUtc.endsWith('Z') ? rawUtc : rawUtc + 'Z') : new Date(r.date_scheduled);
+            // Keep race as active/upcoming until 6 hours post start
+            return (now - raceUtc) < (6 * 60 * 60 * 1000);
+        }) || cupRaces[cupRaces.length - 1];
+
+        if (!nextRace) return;
+
+        // 1. Title & Track Info
+        const heroRaceNameEl = document.getElementById('heroRaceName');
+        const heroTrackDetailsEl = document.getElementById('heroTrackDetails');
+        const heroDistanceEl = document.getElementById('heroDistance');
+        if (heroRaceNameEl) heroRaceNameEl.textContent = nextRace.race_name;
+        if (heroTrackDetailsEl) {
+            heroTrackDetailsEl.textContent =
+                `${nextRace.track_name} • ${nextRace.scheduled_laps} Laps (${nextRace.scheduled_distance} Miles)`;
+        }
+        if (heroDistanceEl) {
+            heroDistanceEl.textContent = `${nextRace.scheduled_laps} Laps (${nextRace.scheduled_distance} Mi)`;
+        }
+
+        // The Chase badge evaluation
+        const playoffBadgeEl = document.getElementById('racePlayoffBadge');
+        if (playoffBadgeEl) {
+            const isChaseRace = (nextRace.playoff_round && Number(nextRace.playoff_round) > 0) || (Number(nextRace.race_id) >= 5625);
+            if (isChaseRace) {
+                playoffBadgeEl.textContent = 'THE CHASE';
+                playoffBadgeEl.className = 'chase-tag';
+                playoffBadgeEl.style.display = 'inline-block';
+            } else {
+                playoffBadgeEl.style.display = 'none';
+            }
+        }
+
+        // 2. Broadcast Networks
+        const bTvEl = document.getElementById('bTv');
+        const bRadioEl = document.getElementById('bRadio');
+        const bSxmEl = document.getElementById('bSxm');
+        if (bTvEl) bTvEl.textContent = nextRace.television_broadcaster || 'TBD';
+        if (bRadioEl) bRadioEl.textContent = nextRace.radio_broadcaster || 'MRN';
+        if (bSxmEl) bSxmEl.textContent = nextRace.satellite_radio_broadcaster || 'SIRIUSXM';
+
+        // Stages
+        const heroStagesEl = document.getElementById('heroStages');
+        if (heroStagesEl) {
+            if (nextRace.stage_1_laps && nextRace.stage_2_laps && nextRace.stage_3_laps) {
+                heroStagesEl.textContent =
+                    `Stage 1: ${nextRace.stage_1_laps}L | Stage 2: ${nextRace.stage_2_laps}L | Stage 3: ${nextRace.stage_3_laps}L`;
+            } else {
+                heroStagesEl.textContent = `${nextRace.scheduled_laps || '--'} Total Laps`;
+            }
+        }
+
+        // 3. Extract UTC start time from schedule array
+        const raceEvent = (nextRace.schedule || []).find(e => e.run_type === 3 || e.event_name === 'Race');
+        const raceUtcString = String(raceEvent ? raceEvent.start_time_utc : nextRace.date_scheduled || '');
+
+        // Parse UTC Date
+        const raceDateUtc = new Date(raceUtcString.endsWith('Z') ? raceUtcString : raceUtcString + 'Z');
+
+        // User's Local Time
+        const userFormatter = new Intl.DateTimeFormat([], {
+            weekday: 'short', month: 'short', day: 'numeric',
+            hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short'
+        });
+        const userLocalTimeEl = document.getElementById('userLocalTime');
+        if (userLocalTimeEl && !Number.isNaN(raceDateUtc.getTime())) {
+            userLocalTimeEl.textContent = userFormatter.format(raceDateUtc);
+        }
+
+        // User Time Zone Label
+        const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+        const userTzLabelEl = document.getElementById('userTimezoneLabel');
+        if (userTzLabelEl && userTz) {
+            userTzLabelEl.textContent = userTz.split('/').pop().replace(/_/g, ' ');
+        }
+
+        // Track Local Time (Formatted using date_scheduled raw time or Eastern Time default for Martinsville)
+        const trackFormatter = new Intl.DateTimeFormat([], {
+            weekday: 'short', month: 'short', day: 'numeric',
+            hour: 'numeric', minute: '2-digit', hour12: true,
+            timeZone: 'America/New_York', // Eastern timezone default for NASCAR east coast tracks
+            timeZoneName: 'short'
+        });
+        const trackLocalTimeEl = document.getElementById('trackLocalTime');
+        if (trackLocalTimeEl && !Number.isNaN(raceDateUtc.getTime())) {
+            trackLocalTimeEl.textContent = trackFormatter.format(raceDateUtc);
+        }
+
+        // 4. Start Countdown Timer
+        if (!Number.isNaN(raceDateUtc.getTime())) {
+            startCountdown(raceDateUtc);
+        }
+
+        // 5. Load Qualifying Starting Lineup (run_type === 2)
+        currentNextRaceId = nextRace.race_id || 5632;
+        await loadStartingLineup(currentNextRaceId);
+        await updateSeasonScheduleTable();
+    } catch (err) {
+        console.error('Failed to load next race hero:', err);
+    }
+}
+
+/**
+ * Updates #heroActionBtn based on whether the race is currently live (green flag dropped).
+ */
+function updateHeroAndLineupLiveState(isLiveNow) {
+    const heroActionBtn = document.getElementById('heroActionBtn');
+
+    if (isLiveNow) {
+        if (heroActionBtn) {
+            heroActionBtn.className = 'hero-cta-btn live-cta';
+            heroActionBtn.textContent = '🟢 Watch Live Leaderboard';
+            heroActionBtn.setAttribute('onclick', "switchTab('liveFeed')");
+        }
+    } else {
+        if (heroActionBtn) {
+            heroActionBtn.className = 'hero-cta-btn lineup-cta';
+            heroActionBtn.textContent = '📋 View Starting Lineup';
+            heroActionBtn.setAttribute('onclick', `openStartingLineupModal(${currentNextRaceId || 5632})`);
+        }
+    }
+}
+
+window.openStartingLineupModal = async function(raceId = 5632) {
+    const modal = document.getElementById('lineupModal');
+    const tbody = document.getElementById('lineupModalTableBody');
+    const metaEl = document.getElementById('lineupModalMeta');
+    if (!modal || !tbody) return;
+
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    const targetRaceId = raceId || currentNextRaceId || 5632;
+    const year = new Date().getFullYear();
+    const url = `https://cf.nascar.com/cacher/${year}/1/${targetRaceId}/weekend-feed.json`;
+
+    try {
+        let data = null;
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            data = await res.json();
+        } catch (directErr) {
+            data = await fetchWithCorsFallback(url);
+        }
+
+        // 1. Map Team Name & Manufacturer from weekend_race entry list
+        const teamMetaMap = {};
+        const raceEntries = (data?.weekend_race && data.weekend_race[0] && data.weekend_race[0].results) || [];
+        raceEntries.forEach(entry => {
+            const cNum = String(entry.car_number || '').trim();
+            if (cNum) {
+                teamMetaMap[cNum] = {
+                    teamName: entry.team_name || 'Independent',
+                    carMake: entry.car_make || entry.car_model || ''
+                };
+            }
+        });
+
+        // 2. Extract Busch Pole Qualifying run (run_type === 2)
+        const weekendRuns = data?.weekend_runs || [];
+        const qualRun = weekendRuns.find(r => Number(r.run_type) === 2);
+
+        if (!qualRun || !qualRun.results || qualRun.results.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #8b949e; padding: 30px;">Qualifying results not yet available.</td></tr>`;
+            if (metaEl) metaEl.textContent = 'Awaiting Qualifying';
+            return;
+        }
+
+        if (metaEl) {
+            metaEl.textContent = `${qualRun.run_name || 'Busch Pole Qualifying'} • ${qualRun.results.length} Cars Qualified`;
+        }
+
+        // 3. Sort by finishing_position ascending (Pole / P1 at top)
+        const sortedGrid = [...qualRun.results].sort((a, b) => Number(a.finishing_position || 999) - Number(b.finishing_position || 999));
+
+        // 4. Render rows
+        tbody.innerHTML = sortedGrid.map(item => {
+            const pos = Number(item.finishing_position || 0);
+            const carNum = String(item.car_number || item.vehicle_number || '').trim();
+            const driver = item.driver_name || '--';
+
+            const meta = teamMetaMap[carNum] || {};
+            const teamName = meta.teamName || 'Independent';
+            const manufacturer = meta.carMake || item.manufacturer || '';
+
+            const rawLap = Number(item.best_lap_time || 0);
+            const lapTime = rawLap > 0 ? `${rawLap.toFixed(3)}s` : '--';
+
+            let delta = '--';
+            if (pos === 1) delta = '<span class="pole-label">POLE</span>';
+            else if (item.delta_leader !== null && item.delta_leader !== undefined && rawLap > 0) {
+                delta = `+${Math.abs(Number(item.delta_leader)).toFixed(3)}s`;
+            }
+
+            let mfgClass = 'mfg-default';
+            const mfgLower = manufacturer.toLowerCase();
+            if (mfgLower.includes('toyota')) mfgClass = 'mfg-toyota';
+            else if (mfgLower.includes('chevy') || mfgLower.includes('chevrolet')) mfgClass = 'mfg-chevy';
+            else if (mfgLower.includes('ford')) mfgClass = 'mfg-ford';
+
+            return `
+                <tr class="${pos === 1 ? 'pole-row' : ''}">
+                    <td class="grid-pos">${pos === 1 ? '🥇 1' : pos}</td>
+                    <td class="grid-car"><span class="car-badge">${carNum}</span></td>
+                    <td class="grid-driver"><span class="driver-name">${driver}</span></td>
+                    <td class="grid-team">
+                        <span class="team-label">${teamName}</span>
+                        ${manufacturer ? `<span class="mfg-badge ${mfgClass}">${manufacturer}</span>` : ''}
+                    </td>
+                    <td class="grid-time">${lapTime}</td>
+                    <td class="grid-delta">${delta}</td>
+                </tr>
+            `;
+        }).join('');
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #f85149; padding: 30px;">Error loading starting lineup feed.</td></tr>`;
+    }
+};
+
+window.closeLineupModal = function() {
+    const modal = document.getElementById('lineupModal');
+    if (modal) modal.style.display = 'none';
+    document.body.style.overflow = '';
+};
+
+window.handleModalBackdropClick = function(e, modalId) {
+    if (e && e.target && e.target.id === modalId) {
+        closeLineupModal();
+        if (typeof closeResultsModal === 'function') closeResultsModal();
+        if (typeof closeRaceResultsViewer === 'function') closeRaceResultsViewer();
+    }
+};
+
+async function loadStartingLineup(raceId) {
+    const year = new Date().getFullYear();
+    const url = `https://cf.nascar.com/cacher/${year}/1/${raceId}/weekend-feed.json`;
+
+    try {
+        let data = null;
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            data = await res.json();
+        } catch (directErr) {
+            data = await fetchWithCorsFallback(url);
+        }
+
+        const weekendRuns = data?.weekend_runs || [];
+        const qualRun = weekendRuns.find(run => Number(run.run_type) === 2);
+
+        if (!qualRun || !qualRun.results || qualRun.results.length === 0) {
+            currentNextRaceHasQualifying = false;
+            return;
+        }
+
+        currentNextRaceHasQualifying = true;
+    } catch (err) {
+        console.warn('Starting grid pre-check warning:', err.message);
+    }
+}
+
+function startCountdown(targetDate) {
+    if (countdownInterval) clearInterval(countdownInterval);
+
+    function update() {
+        const now = new Date().getTime();
+        const distance = targetDate.getTime() - now;
+
+        const daysEl = document.getElementById('cdDays');
+        const hoursEl = document.getElementById('cdHours');
+        const minsEl = document.getElementById('cdMins');
+        const secsEl = document.getElementById('cdSecs');
+        const subtext = document.getElementById('countdownStatus');
+        const liveStatusBadgeEl = document.getElementById('liveStatusBadge');
+
+        if (!daysEl || !hoursEl || !minsEl || !secsEl || !subtext) return;
+
+        if (distance < 0) {
+            if (Math.abs(distance) < (5 * 60 * 60 * 1000)) {
+                subtext.innerHTML = '<span style="color:#3fb950; font-weight:700;">🟢 RACE IS CURRENTLY LIVE</span>';
+                daysEl.textContent = '00';
+                hoursEl.textContent = '00';
+                minsEl.textContent = '00';
+                secsEl.textContent = '00';
+                if (liveStatusBadgeEl) liveStatusBadgeEl.textContent = 'LIVE NOW';
+                updateHeroAndLineupLiveState(true);
+            } else {
+                subtext.textContent = 'Race Official / Concluded';
+                if (liveStatusBadgeEl) liveStatusBadgeEl.textContent = 'CONCLUDED';
+                updateHeroAndLineupLiveState(false);
+            }
+            return;
+        }
+
+        const d = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((distance % (1000 * 60)) / 1000);
+
+        daysEl.textContent = String(d).padStart(2, '0');
+        hoursEl.textContent = String(h).padStart(2, '0');
+        minsEl.textContent = String(m).padStart(2, '0');
+        secsEl.textContent = String(s).padStart(2, '0');
+        subtext.textContent = 'Countdown to Official Green Flag';
+        if (liveStatusBadgeEl) liveStatusBadgeEl.textContent = 'UPCOMING';
+        updateHeroAndLineupLiveState(false);
+    }
+
+    update();
+    countdownInterval = setInterval(update, 1000);
+}
+
+/**
+ * Triggers initial league roster, schedule, Next Race hero, and live telemetry data fetching once authenticated.
  */
 function startAuthenticatedDashboardFeeds() {
     if (!currentAuthUser) return;
     populateRosterEditorOptions();
+    loadNextRaceHero();
     loadUserRosters()
         .then(() => {
             if (!currentAuthUser) return;
